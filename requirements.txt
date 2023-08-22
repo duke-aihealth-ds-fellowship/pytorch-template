@@ -1,0 +1,4 @@
+pydantic
+torch
+polars
+toml

@@ -1,0 +1,10 @@
+random_seed = 42
+
+[model]
+embedding_dim = 256
+hidden_dim = 64
+
+[optimizer]
+lr = 1e-5
+momentum = 0.9
+weight_decay = 1e-6
