@@ -2,3 +2,4 @@ pydantic
 torch
 polars
 toml
+numpy

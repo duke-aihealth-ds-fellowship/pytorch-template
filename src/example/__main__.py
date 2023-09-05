@@ -11,7 +11,12 @@ def main():
     config = Config(**config_data)
     print(config)
 
-    X = pl.DataFrame({"x1": [1, 3, 2, 5], "x2": [5, 7, 3, 2]})
+    X = pl.DataFrame(
+        {
+            "x1": [1, 3, 2, 5],
+            "x2": [5, 7, 3, 2],
+        }
+    )
     y = pl.DataFrame({"y": [0, 1, 1, 0]})
 
     model = MyNetwork(
