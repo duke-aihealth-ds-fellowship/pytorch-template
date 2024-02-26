@@ -1,2 +1,2 @@
 # template
-A template for AI projects in python
+A template for data science projects in python

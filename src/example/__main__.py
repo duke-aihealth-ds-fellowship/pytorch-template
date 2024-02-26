@@ -20,7 +20,10 @@ def main():
     y = pl.DataFrame({"y": [0, 1, 1, 0]})
     dataset = TensorDataset(X, y)
     model = MyNetwork(
-        input_dim=X.shape[1], hidden_dim=config.model.hidden_dim, output_dim=y.shape[1]
+        input_dim=X.shape[1],
+        hidden_dim=config.model.hidden_dim,
+        output_dim=y.shape[1],
+        n_layers=config.model.n_layers,
     )
     optimizer = SGD(model.parameters(), **config.optimizer.model_dump())
 

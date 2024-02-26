@@ -9,5 +9,13 @@ lr = 1e-5
 momentum = 0.9
 weight_decay = 1e-6
 
+[training]
+max_epochs = 10
+batch_size = 32
+gradient_clip = 1.0
+
 [filepaths]
-dataset = "path/to/data.csv"
+dataset = "path/to/data"
+train = "train.csv"
+val = "val.csv"
+test = "test.csv"
