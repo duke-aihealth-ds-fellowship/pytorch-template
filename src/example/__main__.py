@@ -1,15 +1,15 @@
 from torch.optim import SGD
+from torch.utils.data import TensorDataset
 from toml import load
 import polars as pl
 
-from config import Config
+from example.config import Config
 from example.model import MyNetwork
 
 
 def main():
     config_data = load("config.toml")
     config = Config(**config_data)
-    print(config)
 
     X = pl.DataFrame(
         {
@@ -18,7 +18,7 @@ def main():
         }
     )
     y = pl.DataFrame({"y": [0, 1, 1, 0]})
-
+    dataset = TensorDataset(X, y)
     model = MyNetwork(
         input_dim=X.shape[1], hidden_dim=config.model.hidden_dim, output_dim=y.shape[1]
     )
