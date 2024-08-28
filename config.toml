@@ -1,8 +1,18 @@
 random_seed = 42
+tune = true
+evaluate = true
+n_trials = 3
+train_size = 0.8
+n_bootstraps = 100
+padding_idx = 0
+num_workers = 0    # > 1 for multiprocessing
+device = "mps"     # "cpu", "cuda" or "mps"
 
 [model]
 embedding_dim = 256
 hidden_dim = 64
+n_layers = 3
+output_dim = 1
 
 [optimizer]
 lr = 1e-5
