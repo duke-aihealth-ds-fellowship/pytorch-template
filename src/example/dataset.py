@@ -33,16 +33,16 @@ def make_splits(df: pl.DataFrame, train_size: float, random_state: int):
 
 class SequenceDataset(Dataset):
     def __init__(self, df: pl.DataFrame):
-        self.dfs: list[pl.DataFrame] = df.partition_by("id")
+        self.df = df
 
     def __len__(self):
-        return len(self.dfs)
+        return len(self.df)
 
     def __getitem__(self, idx):
-        df: pl.DataFrame = self.dfs[idx]
-        X = torch.tensor(df["input"].item(), dtype=torch.long)
-        y = torch.tensor(df["label"].item(), dtype=torch.float32)
-        return X, y
+        df: pl.DataFrame = self.df[idx]
+        inputs = torch.tensor(df["input"].item(), dtype=torch.long)
+        labels = torch.tensor(df["label"].item(), dtype=torch.float32)
+        return inputs, labels
 
 
 def collate_batch(batch, device):

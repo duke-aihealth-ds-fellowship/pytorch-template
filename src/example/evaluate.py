@@ -18,14 +18,15 @@ def get_predictions(model: nn.Module, dataloader: DataLoader):
     return torch.cat(outputs_list), torch.cat(labels_list)
 
 
-def bootstrap_metric(metric, outputs, labels, n_bootstraps):
+def bootstrap_metric(
+    metric, outputs: torch.Tensor, labels: torch.Tensor, n_bootstraps: int
+):
     bootstrap = BootStrapper(
         metric, num_bootstraps=n_bootstraps, mean=False, std=False, raw=True
     )
     bootstrap.to(outputs.device)
     bootstrap.update(outputs, labels)
     return bootstrap.compute()["raw"]
-    # return pl.DataFrame(bootstraps.cpu().numpy())
 
 
 def compute_metrics(
@@ -45,12 +46,13 @@ def compute_metrics(
     return results
 
 
-def evaluate_predictions(
-    outputs: torch.Tensor,
-    labels: torch.Tensor,
+def evaluate_model(
+    model: nn.Module,
+    dataloader: DataLoader,
     metrics: dict[str, Callable],
     n_bootstraps: int | None = None,
 ):
+    outputs, labels = get_predictions(model=model, dataloader=dataloader)
     return compute_metrics(outputs, labels, metrics, n_bootstraps)
 
 

@@ -2,7 +2,7 @@ from toml import load
 from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
 import polars as pl
 
-from example.evaluate import evaluate_predictions, get_predictions
+from example.evaluate import evaluate_model
 from example.tune import tune_model
 from example.config import Config
 from example.dataset import make_dataloaders, make_fake_dataset, make_splits
@@ -56,7 +56,8 @@ def main():
         )
         model = train_model(
             model=model,
-            dataloader=train_loader,
+            train_loader=train_loader,
+            val_loader=val_loader,
             optimizer=optimizer,
             criterion=criterion,
             max_epochs=config.training.max_epochs,
@@ -64,11 +65,9 @@ def main():
     if config.evaluate:
         # you can add or remove metrics here
         test_metrics = {"AUROC": BinaryAUROC(), "AP": BinaryAveragePrecision()}
-        outputs, labels = get_predictions(model=model, dataloader=test_loader)
-        labels = labels.long()
-        metrics = evaluate_predictions(
-            outputs=outputs,
-            labels=labels,
+        metrics = evaluate_model(
+            model=model,
+            dataloader=test_loader,
             metrics=test_metrics,
             n_bootstraps=config.n_bootstraps,
         )

@@ -4,7 +4,7 @@ from optuna import create_study, Trial
 from optuna.samplers import TPESampler
 from torch.utils.data import DataLoader
 
-from example.evaluate import evaluate_predictions, get_predictions
+from example.evaluate import evaluate_model
 from example.train import make_components, train_model
 
 
@@ -38,14 +38,14 @@ def objective(
     )
     model = train_model(
         model=model,
-        dataloader=train_loader,
+        train_loader=train_loader,
+        val_loader=val_loader,
         optimizer=optimizer,
         criterion=criterion,
         max_epochs=max_epochs,
     )
-    outputs, labels = get_predictions(model=model, dataloader=val_loader)
-    metrics = evaluate_predictions(
-        outputs=outputs, labels=labels, metrics={"val_loss": criterion}
+    metrics = evaluate_model(
+        model=model, dataloader=val_loader, metrics={"val_loss": criterion}
     )
     return metrics["val_loss"].item()
 
@@ -89,8 +89,9 @@ def tune_model(
         **study.best_params,
     )
     model = train_model(
-        model,
-        dataloader=train_loader,
+        model=model,
+        train_loader=train_loader,
+        val_loader=val_loader,
         optimizer=optimizer,
         criterion=criterion,
         max_epochs=max_epochs,
