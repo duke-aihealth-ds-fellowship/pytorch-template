@@ -2,7 +2,7 @@
 A simple, hackable template for PyTorch projects.
 
 ### Goal
-The goal of this project is to provide a template to jump start PyTorch projects. It is designed to be a starting point for new projects. It is structured as a Python package to ease dissemination and reuse.
+This project is a template to jump start PyTorch projects. It is structured as a Python package (see this [tutorial](https://packaging.python.org/en/latest/tutorials/packaging-projects/)) to ease dissemination and reuse.
 
 ### Installation
 ```bash
