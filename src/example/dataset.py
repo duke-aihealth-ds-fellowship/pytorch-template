@@ -40,18 +40,16 @@ class SequenceDataset(Dataset):
 
     def __getitem__(self, idx):
         df: pl.DataFrame = self.dfs[idx]
-        X = torch.tensor(df["input"][0]).long()
-        y = torch.tensor(df["label"].to_numpy()).float()
+        X = torch.tensor(df["input"].item(), dtype=torch.long)
+        y = torch.tensor(df["label"].item(), dtype=torch.float32)
         return X, y
 
 
 def collate_batch(batch, device):
     inputs, labels = zip(*batch)
     inputs = pad_sequence(inputs, batch_first=True)
-    labels = torch.stack(labels)
-    inputs = inputs.to(device)
-    labels = labels.to(device)
-    return inputs, labels
+    labels = torch.stack(labels).unsqueeze(1)
+    return inputs.to(device), labels.to(device)
 
 
 def make_dataloaders(

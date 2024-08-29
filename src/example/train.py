@@ -47,8 +47,8 @@ def train_model(
     for _ in progress_bar:
         for inputs, labels in dataloader:
             optimizer.zero_grad()
-            output = model(inputs)
-            loss = criterion(output, labels)
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
         progress_bar.set_postfix_str(f"Training loss: {loss.item():.3f}")
