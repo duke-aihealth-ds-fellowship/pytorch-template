@@ -16,8 +16,9 @@ Give the package a new name (set to "example" by default) by modifying it in pyp
 python3 -m your_package_name
 ```
 
-### Implements:
+### Implemented components
 - Configuration with Pydantic
+- Custom PyTorch dataset
 - Dataloaders for train, validation, and test splits
 - A barebones training loop
 - Model checkpointing
