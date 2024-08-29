@@ -71,6 +71,8 @@ def main():
             metrics=test_metrics,
             n_bootstraps=config.n_bootstraps,
         )
+        # warning, this code is only for demonstration purposes and
+        # will likely break for multiclass or multilabel metrics
         metrics = pl.DataFrame(metrics).melt()
         metric_summary = metrics.groupby("variable").agg(
             pl.col("value").mean().alias("mean"), pl.col("value").std().alias("std")
