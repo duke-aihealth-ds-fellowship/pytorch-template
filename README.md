@@ -18,8 +18,12 @@ python3 -m your_package_name
 
 ### Implements:
 - Configuration with Pydantic
-- A custom PyTorch dataset for sequence data
 - Dataloaders for train, validation, and test splits
 - A barebones training loop
+- Model checkpointing
 - Hyperparameter tuning with Optuna
 - Model evaluation with TorchMetrics
+
+### Toy dataset examples
+- A custom PyTorch dataset for sequence data e.g. word embeddings
+- More to come...
