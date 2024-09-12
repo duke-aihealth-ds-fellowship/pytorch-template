@@ -1,4 +1,6 @@
 from functools import partial
+import json
+
 from optuna import create_study, Trial
 from optuna.samplers import TPESampler
 import torch.nn as nn
@@ -35,4 +37,7 @@ def tune_model(dataloaders: Splits, config: Config):
     study = create_study(sampler=sampler, direction="minimize", study_name="ABCD")
     objective_function = partial(objective, dataloaders=dataloaders, config=config)
     study.optimize(func=objective_function, n_trials=config.tuner.n_trials)
-    return study
+    if config.verbose:
+        print("Best model hyperparameters:\n")
+        print(json.dumps(study.best_params, indent=4))
+        print(f"Best model checkpoint saved in: {config.checkpoint_path}")

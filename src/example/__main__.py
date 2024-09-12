@@ -1,4 +1,4 @@
-from toml import load
+from tomllib import load
 from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
 
 from example.evaluate import evaluate_model
@@ -7,11 +7,11 @@ from example.config import Config
 from example.dataset import make_dataloaders, make_fake_dataset, make_splits
 from example.train import train_model
 from example.checkpoint import load_best_checkpoint
-import json
 
 
 def main():
-    config_data = load("config.toml")
+    with open("config.toml", "rb") as f:
+        config_data = load(f)
     config = Config(**config_data)
 
     df = make_fake_dataset()
@@ -23,12 +23,10 @@ def main():
     dataloaders = make_dataloaders(
         train=train, val=val, test=test, dataloader_config=config.dataloader
     )
-    vocab_size = train["input"].explode().n_unique()
-    config.model.vocab_size = vocab_size
+    # TODO This is specific to the example dataset
+    config.model.vocab_size = train["input"].explode().n_unique()
     if config.tune:
-        study = tune_model(dataloaders, config=config)
-        print("Best model hyperparameters:\n", json.dumps(study.best_params, indent=4))
-        print(f"Best model checkpoint saved in: {config.checkpoint_path}")
+        tune_model(dataloaders, config=config)
     if config.train:
         model = train_model(dataloaders=dataloaders, config=config)
     else:

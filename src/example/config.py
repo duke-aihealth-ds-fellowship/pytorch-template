@@ -25,7 +25,6 @@ class DataLoaderConfig(BaseModel):
 
 class TrainerConfig(BaseModel):
     max_epochs: int
-    batch_size: int
     gradient_clip: float
     device: str
 
@@ -40,6 +39,7 @@ class EvaluatorConfig(BaseModel):
 
 class Config(BaseModel):
     random_seed: int
+    verbose: bool
     train: bool
     tune: bool
     evaluate: bool

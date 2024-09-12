@@ -2,7 +2,6 @@ pydantic
 torch
 torchmetrics
 polars
-toml
 numpy
 optuna
 scikit-learn

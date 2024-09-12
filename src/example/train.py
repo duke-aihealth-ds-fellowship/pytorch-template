@@ -4,24 +4,22 @@ from torch.optim import SGD
 from tqdm import tqdm
 
 from example.checkpoint import checkpoint_model
-from example.config import Config, ModelConfig, OptimizerConfig
+from example.config import Config
 from example.dataset import Splits
 from example.model import EmbeddingModel
 from example.evaluate import evaluate_model
 
 
-def make_components(model_config: ModelConfig, optimizer_config: OptimizerConfig):
-    model = EmbeddingModel(**model_config.model_dump())
-    optimizer = SGD(model.parameters(), **optimizer_config.model_dump())
+def make_components(config: Config):
+    model = EmbeddingModel(**config.model.model_dump())
+    optimizer = SGD(model.parameters(), **config.optimizer.model_dump())
     criterion = nn.BCEWithLogitsLoss()
     return model, optimizer, criterion
 
 
-# TODO add early stopping, gradient clipping, and DataParallel
+# TODO add early stopping, gradient clipping, logging, and DataParallel
 def train_model(dataloaders: Splits, config: Config):
-    model, optimizer, criterion = make_components(
-        **config.model.model_dump(), **config.optimizer.model_dump()
-    )
+    model, optimizer, criterion = make_components(config=config)
     model_device = torch.device(config.trainer.device)
     model.to(device=model_device)
     progress_bar = tqdm(range(config.trainer.max_epochs), desc="Epoch")

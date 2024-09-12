@@ -1,5 +1,6 @@
 random_seed = 42
-train = true                         # train using default hyperparameters
+verbose = true
+train = false                        # train using default hyperparameters
 tune = true                          # tune hyperparameters
 evaluate = true
 train_size = 0.8
