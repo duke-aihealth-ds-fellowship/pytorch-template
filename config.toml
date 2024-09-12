@@ -1,8 +1,8 @@
 random_state = 42
 verbose = true
-train = false     # train using default hyperparameters
-tune = true       # tune hyperparameters
-evaluate = true
+train = true      # train using default hyperparameters
+tune = false      # tune hyperparameters
+evaluate = true   # Generate performance metrics from the test set
 train_size = 0.8
 
 [model]
@@ -37,7 +37,7 @@ mode = "minimize"         # "minimize" or "maximize"
 n_trials = 8
 
 [evaluator]
-n_bootstraps = 100
+n_bootstraps = 1000
 
 [hparams]
 [hparams.hidden_dim]

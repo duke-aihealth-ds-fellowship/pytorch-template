@@ -3,6 +3,7 @@ from re import search
 from numpy import argmin, argmax
 import torch
 import torch.nn as nn
+from torch.optim.optimizer import Optimizer
 
 from example.config import CheckpointConfig, ModelConfig, OptimizerConfig
 
@@ -10,7 +11,7 @@ from example.config import CheckpointConfig, ModelConfig, OptimizerConfig
 def checkpoint_model(
     path: Path,
     model: nn.Module,
-    optimizer: torch.optim.Optimizer,
+    optimizer: Optimizer,
     epoch: int,
     train_loss: float,
     val_loss: float,
@@ -34,14 +35,18 @@ def checkpoint_model(
     )
 
 
-def cleanup_checkpoints(best_checkpoint_filepath: Path, checkpoint_path: Path) -> None:
+def remove_worse_checkpoints(
+    best_checkpoint_filepath: Path, checkpoint_path: Path
+) -> None:
     for checkpoint in checkpoint_path.glob("*.pt"):
         if not checkpoint.samefile(best_checkpoint_filepath):
             checkpoint.unlink()
 
 
 def get_best_checkpoint_path(checkpoint_config: CheckpointConfig) -> Path:
-    checkpoint_paths = list(checkpoint_config.path.glob("*.pt"))
+    checkpoint_paths = list(checkpoint_config.path.glob("*val_loss*.pt"))
+    if len(checkpoint_paths) == 0:
+        raise FileNotFoundError(f"No checkpoints found in {checkpoint_config.path}.")
     metrics = []
     for filepath in checkpoint_paths:
         match = search(r"val_loss_(\d+\.\d+)", filepath.stem)
@@ -57,11 +62,8 @@ def get_best_checkpoint_path(checkpoint_config: CheckpointConfig) -> Path:
     return checkpoint_paths[index]
 
 
-def load_best_checkpoint(
-    checkpoint_config: CheckpointConfig, model_class: type[nn.Module]
-) -> nn.Module:
-    checkpoint_path = get_best_checkpoint_path(checkpoint_config)
-    checkpoint = torch.load(checkpoint_path, weights_only=True)
+def load_best_checkpoint(filepath: Path, model_class: type[nn.Module]) -> nn.Module:
+    checkpoint = torch.load(filepath, weights_only=True)
     model = model_class(**checkpoint["model_config"])
     model.load_state_dict(checkpoint["model_state_dict"])
     return model

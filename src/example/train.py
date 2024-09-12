@@ -1,9 +1,13 @@
 import torch
 import torch.nn as nn
-from torch.optim import SGD
+from torch.optim.sgd import SGD
 from tqdm import tqdm
 
-from example.checkpoint import checkpoint_model
+from example.checkpoint import (
+    checkpoint_model,
+    remove_worse_checkpoints,
+    get_best_checkpoint_path,
+)
 from example.config import Config
 from example.dataset import DataLoaders
 from example.model import EmbeddingModel
@@ -18,7 +22,7 @@ def make_components(config: Config):
 
 
 # TODO add early stopping, gradient clipping, logging, and DataParallel
-def train_model(dataloaders: DataLoaders, config: Config):
+def train_model(dataloaders: DataLoaders, config: Config) -> None:
     model, optimizer, criterion = make_components(config=config)
     model_device = torch.device(config.trainer.device)
     model.to(model_device)
@@ -55,4 +59,7 @@ def train_model(dataloaders: DataLoaders, config: Config):
         progress_bar.set_postfix_str(
             f"train loss: {train_loss.item():.4f}; val loss: {val_loss['val_loss']:.4f}"
         )
-    return model
+    best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
+    remove_worse_checkpoints(
+        best_checkpoint_path, checkpoint_path=config.checkpoint.path
+    )

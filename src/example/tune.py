@@ -5,7 +5,7 @@ from optuna import create_study, Trial
 from optuna.samplers import TPESampler
 import torch
 
-from example.checkpoint import cleanup_checkpoints, get_best_checkpoint_path
+from example.checkpoint import get_best_checkpoint_path
 from example.config import Config
 from example.dataset import DataLoaders
 from example.train import train_model
@@ -25,7 +25,6 @@ def objective(trial: Trial, dataloaders: DataLoaders, config: Config) -> float:
     train_model(dataloaders=dataloaders, config=config)
     best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
     checkpoint = torch.load(best_checkpoint_path, weights_only=True)
-    cleanup_checkpoints(best_checkpoint_path, checkpoint_path=config.checkpoint.path)
     return checkpoint["val_loss"].item()
 
 

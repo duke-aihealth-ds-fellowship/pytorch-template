@@ -21,7 +21,7 @@ def get_predictions(
             outputs = model(inputs)
         output_batches.append(outputs)
         label_batches.append(labels)
-    return torch.cat(output_batches), torch.cat(label_batches)
+    return torch.cat(output_batches).cpu(), torch.cat(label_batches).cpu()
 
 
 def bootstrap_metric(
@@ -30,7 +30,6 @@ def bootstrap_metric(
     bootstrap = BootStrapper(
         metric, num_bootstraps=n_bootstraps, mean=True, std=True, raw=True
     )
-    bootstrap.to(outputs.device)
     bootstrap.update(outputs, labels)
     return bootstrap.compute()
 
@@ -50,7 +49,6 @@ def evaluate_model(
         if n_bootstraps:
             results[name] = bootstrap_metric(metric, outputs, labels, n_bootstraps)
         else:
-            metric.to(outputs.device)
             results[name] = metric(outputs, labels)
     return results
 

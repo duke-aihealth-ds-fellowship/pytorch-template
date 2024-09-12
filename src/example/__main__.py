@@ -7,7 +7,7 @@ from example.evaluate import evaluate_model
 from example.model import EmbeddingModel
 from example.tune import tune_model
 from example.train import train_model
-from example.checkpoint import load_best_checkpoint
+from example.checkpoint import get_best_checkpoint_path, load_best_checkpoint
 from example.examples import make_fake_sequence_dataset
 
 
@@ -16,21 +16,17 @@ def main():
         config_data = load(f)
     config = Config(**config_data)
     df = make_fake_sequence_dataset()
-    # Make train, validation, and test splits
     splits = make_splits(
         df, train_size=config.train_size, random_state=config.random_state
     )
     dataloaders = make_dataloaders(splits=splits, dataloader_config=config.dataloader)
-    # Tune model hyperparameters
     if config.tune:
         tune_model(dataloaders, config=config)
-    if config.train:  # Train model with default hyperparameters
+    if config.train:
         model = train_model(dataloaders=dataloaders, config=config)
-    else:  # Load the best model from a previous training or tuning run
-        model = load_best_checkpoint(
-            checkpoint_config=config.checkpoint, model_class=EmbeddingModel
-        )
-    if config.evaluate:  # Generate model performance metrics from the test set
+    best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
+    model = load_best_checkpoint(best_checkpoint_path, model_class=EmbeddingModel)
+    if config.evaluate:
         test_metrics = {"AUROC": BinaryAUROC(), "AP": BinaryAveragePrecision()}
         metrics = evaluate_model(
             model=model,
@@ -41,8 +37,10 @@ def main():
         )
         auroc = metrics["AUROC"]
         ap = metrics["AP"]
-        print(f"AUROC: {auroc['mean']} ± {auroc['std']}")
-        print(f"AP: {ap['mean']} ± {ap['std']}")
+        print(f"AUROC: {auroc['mean']:.2f} ± {auroc['std']:.2f}")
+        print(f"AP: {ap['mean']:.2f} ± {ap['std']:.2f}")
+        # The raw bootstrap values (which are often easier to plot with
+        # packages like seaborn) can be accessed via auroc["raw"] or ap["raw"]
 
 
 if __name__ == "__main__":
