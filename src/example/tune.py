@@ -31,7 +31,7 @@ def objective(trial: Trial, dataloaders: DataLoaders, config: Config) -> float:
 def tune_model(dataloaders: DataLoaders, config: Config):
     sampler = TPESampler(seed=config.random_state)
     study = create_study(
-        sampler=sampler, direction=config.checkpoint.mode, study_name="ABCD"
+        sampler=sampler, direction=config.checkpoint.mode, study_name="tune"
     )
     objective_function = partial(objective, dataloaders=dataloaders, config=config)
     study.optimize(func=objective_function, n_trials=config.tuner.n_trials)
