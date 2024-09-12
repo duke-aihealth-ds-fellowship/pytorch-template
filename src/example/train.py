@@ -21,7 +21,6 @@ def make_components(config: Config):
     return model, optimizer, criterion
 
 
-# TODO add early stopping, gradient clipping, logging, and DataParallel
 def train_model(dataloaders: DataLoaders, config: Config) -> None:
     model, optimizer, criterion = make_components(config=config)
     model_device = torch.device(config.trainer.device)
