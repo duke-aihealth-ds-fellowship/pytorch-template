@@ -4,7 +4,7 @@ A template for PyTorch projects.
 
 ## Goal
 
-This project is a template to jump start PyTorch projects. It is designed to be simple and hackable. It is not meant to be a one-size-fits-all solution, but a starting point that can be modified as needed. It is structured as a Python package (see this [tutorial](https://packaging.python.org/en/latest/tutorials/packaging-projects/)) to ease dissemination and reuse. When beneficial, it follows best practices described [here](https://github.com/Elliot-D-Hill/best-practice). 
+This project is a template to jump-start PyTorch projects. It is designed to be simple and hackable. It is not meant to be a one-size-fits-all solution, but a starting point that can be modified as needed. It is structured as a Python package (see this [tutorial](https://packaging.python.org/en/latest/tutorials/packaging-projects/)) to ease dissemination and reuse. When beneficial, it follows best practices described [here](https://github.com/Elliot-D-Hill/best-practice).
 
 ## Installation
 
