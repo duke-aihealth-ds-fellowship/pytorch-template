@@ -1,9 +1,7 @@
 from toml import load
 from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
-import polars as pl
 
 from example.evaluate import evaluate_model
-from example.model import EmbeddingModel
 from example.tune import tune_model
 from example.config import Config
 from example.dataset import make_dataloaders, make_fake_dataset, make_splits
@@ -34,7 +32,7 @@ def main():
     if config.train:
         model = train_model(dataloaders=dataloaders, config=config)
     else:
-        model = load_best_checkpoint(config.checkpoint_path, model_class=EmbeddingModel)
+        model = load_best_checkpoint(config.checkpoint_path)
     if config.evaluate:
         test_metrics = {"AUROC": BinaryAUROC(), "AP": BinaryAveragePrecision()}
         metrics = evaluate_model(
@@ -43,13 +41,7 @@ def main():
             metrics=test_metrics,
             n_bootstraps=config.evaluator.n_bootstraps,
         )
-        # warning, this code is only for demonstration purposes and
-        # will likely break for multiclass or multilabel metrics
-        metrics = pl.DataFrame(metrics).melt()
-        metric_summary = metrics.groupby("variable").agg(
-            pl.col("value").mean().alias("mean"), pl.col("value").std().alias("std")
-        )
-        print(metric_summary)
+        print(metrics)
 
 
 if __name__ == "__main__":

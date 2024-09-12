@@ -27,6 +27,7 @@ def checkpoint_model(
             "epoch": epoch,
             "train_loss": train_loss,
             "val_loss": val_loss,
+            "model_class": type(model),
             "model_config": model_config.model_dump(),
             "optimizer_config": optimizer_config.model_dump(),
         },
@@ -49,13 +50,19 @@ def get_best_checkpoint_path(checkpoint_dir: Path, mode: str) -> Path:
         for filepath in checkpoint_paths
         if (match := search(r"(\d+\.\d+)\.pt", filepath.stem))
     ]
-    index = argmin(metrics) if mode == "min" else argmax(metrics)
+    match mode:
+        case "min":
+            index = argmin(metrics)
+        case "max":
+            index = argmax(metrics)
+        case _:
+            raise ValueError("mode must be 'min' or 'max'")
     return checkpoint_paths[index]
 
 
-def load_best_checkpoint(path: Path, model_class: type[nn.Module]) -> nn.Module:
-    checkpoint_path = get_best_checkpoint_path(path, mode="min")
+def load_best_checkpoint(path: Path, mode: str = "min") -> nn.Module:
+    checkpoint_path = get_best_checkpoint_path(path, mode=mode)
     checkpoint = torch.load(checkpoint_path, weights_only=True)
+    model_class = checkpoint["model_class"]
     model = model_class(**checkpoint["model_config"])
-    model.load_state_dict(checkpoint["model_state_dict"])
-    return model
+    return model.load_state_dict(checkpoint["model_state_dict"])
