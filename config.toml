@@ -1,7 +1,7 @@
 random_state = 42
 verbose = true
-train = false     # train using default hparams
-tune = true       # tune hparams
+train = false     # train using default hyperparameters
+tune = true       # tune hyperparameters
 evaluate = true
 train_size = 0.8
 
@@ -17,8 +17,6 @@ padding_idx = 0
 lr = 1e-5
 momentum = 0.9
 weight_decay = 1e-6
-
-[hparams.optimizer]
 
 [dataloader]
 batch_size = 32
@@ -36,8 +34,7 @@ path = "data/checkpoints"
 mode = "minimize"         # "minimize" or "maximize"
 
 [tuner]
-n_trials = 16
-
+n_trials = 8
 
 [evaluator]
 n_bootstraps = 100

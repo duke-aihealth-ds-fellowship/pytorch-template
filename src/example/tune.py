@@ -5,7 +5,7 @@ from optuna import create_study, Trial
 from optuna.samplers import TPESampler
 import torch
 
-from example.checkpoint import get_best_checkpoint_path
+from example.checkpoint import cleanup_checkpoints, get_best_checkpoint_path
 from example.config import Config
 from example.dataset import DataLoaders
 from example.train import train_model
@@ -23,8 +23,9 @@ def sample_hyperparameters(trial: Trial, config: Config):
 def objective(trial: Trial, dataloaders: DataLoaders, config: Config) -> float:
     config = sample_hyperparameters(trial, config)
     train_model(dataloaders=dataloaders, config=config)
-    checkpoint_path = get_best_checkpoint_path(config.checkpoint)
-    checkpoint = torch.load(checkpoint_path, weights_only=True)
+    best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
+    checkpoint = torch.load(best_checkpoint_path, weights_only=True)
+    cleanup_checkpoints(best_checkpoint_path, checkpoint_path=config.checkpoint.path)
     return checkpoint["val_loss"].item()
 
 
@@ -36,6 +37,6 @@ def tune_model(dataloaders: DataLoaders, config: Config):
     objective_function = partial(objective, dataloaders=dataloaders, config=config)
     study.optimize(func=objective_function, n_trials=config.tuner.n_trials)
     if config.verbose:
-        print("Best model hyperparameters:\n")
+        print("Best model hyperparameters:")
         print(json.dumps(study.best_params, indent=4))
         print(f"Best model checkpoint saved in: {config.checkpoint.path}")

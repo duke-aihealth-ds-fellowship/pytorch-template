@@ -3,12 +3,14 @@ import polars as pl
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchmetrics import Metric
 from torchmetrics.wrappers import BootStrapper
 
 
 def get_predictions(
     model: nn.Module, dataloader: DataLoader, device: torch.device | str
 ):
+    model.to(device)
     model.eval()
     output_batches = []
     label_batches = []
@@ -43,6 +45,8 @@ def evaluate_model(
     outputs, labels = get_predictions(model=model, dataloader=dataloader, device=device)
     results = {}
     for name, metric in metrics.items():
+        if issubclass(type(metric), Metric):
+            labels = labels.long()
         if n_bootstraps:
             results[name] = bootstrap_metric(metric, outputs, labels, n_bootstraps)
         else:
