@@ -1,4 +1,4 @@
-random_seed = 42
+random_state = 42
 verbose = true
 train = false                        # train using default hyperparameters
 tune = true                          # tune hyperparameters
@@ -7,6 +7,7 @@ train_size = 0.8
 checkpoint_path = "data/checkpoints"
 
 [model]
+vocab_size = 100
 embedding_dim = 256
 hidden_dim = 64
 n_layers = 3
@@ -32,4 +33,4 @@ device = "mps"      # "cpu", "cuda" or "mps"
 n_trials = 16
 
 [evaluator]
-n_bootstraps = 1000
+n_bootstraps = 100

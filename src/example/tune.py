@@ -6,7 +6,7 @@ from optuna.samplers import TPESampler
 import torch.nn as nn
 
 from example.config import Config
-from example.dataset import Splits
+from example.dataset import DataLoaders
 from example.evaluate import evaluate_model
 from example.train import train_model
 
@@ -24,16 +24,21 @@ def sample_hyperparameters(trial: Trial, config: Config):
     return config
 
 
-def objective(trial: Trial, dataloaders: Splits, config: Config) -> float:
+def objective(trial: Trial, dataloaders: DataLoaders, config: Config) -> float:
     config = sample_hyperparameters(trial, config)
     model = train_model(dataloaders=dataloaders, config=config)
     metrics = {"val_loss": nn.CrossEntropyLoss()}
-    val_loss = evaluate_model(model=model, dataloader=dataloaders.val, metrics=metrics)
+    val_loss = evaluate_model(
+        model=model,
+        dataloader=dataloaders.val,
+        metrics=metrics,
+        device=config.trainer.device,
+    )
     return val_loss["val_loss"].item()
 
 
-def tune_model(dataloaders: Splits, config: Config):
-    sampler = TPESampler(seed=config.random_seed)
+def tune_model(dataloaders: DataLoaders, config: Config):
+    sampler = TPESampler(seed=config.random_state)
     study = create_study(sampler=sampler, direction="minimize", study_name="ABCD")
     objective_function = partial(objective, dataloaders=dataloaders, config=config)
     study.optimize(func=objective_function, n_trials=config.tuner.n_trials)

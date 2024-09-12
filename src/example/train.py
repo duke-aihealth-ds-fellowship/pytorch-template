@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from example.checkpoint import checkpoint_model
 from example.config import Config
-from example.dataset import Splits
+from example.dataset import DataLoaders
 from example.model import EmbeddingModel
 from example.evaluate import evaluate_model
 
@@ -18,22 +18,26 @@ def make_components(config: Config):
 
 
 # TODO add early stopping, gradient clipping, logging, and DataParallel
-def train_model(dataloaders: Splits, config: Config):
+def train_model(dataloaders: DataLoaders, config: Config):
     model, optimizer, criterion = make_components(config=config)
     model_device = torch.device(config.trainer.device)
-    model.to(device=model_device)
+    model.to(model_device)
     progress_bar = tqdm(range(config.trainer.max_epochs), desc="Epoch")
     min_val_loss = float("inf")
     for epoch in progress_bar:
         for inputs, labels in dataloaders.train:
-            inputs, labels = inputs.to(model_device), labels.to(model_device)
+            inputs = inputs.to(model_device)
+            labels = labels.to(model_device)
             optimizer.zero_grad()
             outputs = model(inputs)
             train_loss = criterion(outputs, labels)
             train_loss.backward()
             optimizer.step()
         val_loss = evaluate_model(
-            model=model, dataloader=dataloaders.val, metrics={"val_loss": criterion}
+            model=model,
+            dataloader=dataloaders.val,
+            metrics={"val_loss": criterion},
+            device=model_device,
         )
         if val_loss["val_loss"] < min_val_loss:
             min_val_loss = val_loss["val_loss"]

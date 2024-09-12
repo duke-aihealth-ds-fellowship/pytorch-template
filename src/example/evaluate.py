@@ -6,44 +6,48 @@ from torch.utils.data import DataLoader
 from torchmetrics.wrappers import BootStrapper
 
 
-def get_predictions(model: nn.Module, dataloader: DataLoader):
+def get_predictions(
+    model: nn.Module, dataloader: DataLoader, device: torch.device | str
+):
     model.eval()
-    outputs_list = []
-    labels_list = []
+    output_batches = []
+    label_batches = []
     for inputs, labels in dataloader:
+        inputs = inputs.to(device)
+        labels = labels.to(device)
         with torch.no_grad():
             outputs = model(inputs)
-        outputs_list.append(outputs)
-        labels_list.append(labels)
-    return torch.cat(outputs_list), torch.cat(labels_list)
+        output_batches.append(outputs)
+        label_batches.append(labels)
+    return torch.cat(output_batches), torch.cat(label_batches)
 
 
 def bootstrap_metric(
     metric, outputs: torch.Tensor, labels: torch.Tensor, n_bootstraps: int
 ):
     bootstrap = BootStrapper(
-        metric, num_bootstraps=n_bootstraps, mean=False, std=False, raw=True
+        metric, num_bootstraps=n_bootstraps, mean=True, std=True, raw=True
     )
     bootstrap.to(outputs.device)
     bootstrap.update(outputs, labels)
-    return bootstrap.compute()["raw"]
+    return bootstrap.compute()
 
 
 def evaluate_model(
     model: nn.Module,
     dataloader: DataLoader,
     metrics: dict[str, Callable],
+    device: torch.device | str,
     n_bootstraps: int | None = None,
-):
-    outputs, labels = get_predictions(model=model, dataloader=dataloader)
+) -> dict:
+    outputs, labels = get_predictions(model=model, dataloader=dataloader, device=device)
     results = {}
     for name, metric in metrics.items():
-        metric.to(outputs.device)
         if n_bootstraps:
-            result = bootstrap_metric(metric, outputs, labels, n_bootstraps)
+            results[name] = bootstrap_metric(metric, outputs, labels, n_bootstraps)
         else:
-            result = metric(outputs, labels)
-        results[name] = result.cpu().numpy()
+            metric.to(outputs.device)
+            results[name] = metric(outputs, labels)
     return results
 
 

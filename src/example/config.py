@@ -1,14 +1,14 @@
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class ModelConfig(BaseModel):
+    vocab_size: int
     embedding_dim: int
     hidden_dim: int
     n_layers: int
     output_dim: int
     padding_idx: int
-    vocab_size: int | None = Field(default=None)
 
 
 class OptimizerConfig(BaseModel):
@@ -38,7 +38,7 @@ class EvaluatorConfig(BaseModel):
 
 
 class Config(BaseModel):
-    random_seed: int
+    random_state: int
     verbose: bool
     train: bool
     tune: bool

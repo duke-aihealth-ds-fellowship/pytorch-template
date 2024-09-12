@@ -22,11 +22,12 @@ class EmbeddingModel(nn.Module):
             nn.ReLU(),
             nn.Linear(in_features=hidden_dim, out_features=hidden_dim),
         ] * n_layers
+        prediction_head = nn.Linear(in_features=hidden_dim, out_features=output_dim)
         self.model = nn.Sequential(
             nn.Linear(in_features=embedding_dim, out_features=hidden_dim),
             *mlp_layers,
             nn.ReLU(),
-            nn.Linear(in_features=hidden_dim, out_features=output_dim),
+            prediction_head,
         )
 
     def forward(self, x: torch.Tensor):
