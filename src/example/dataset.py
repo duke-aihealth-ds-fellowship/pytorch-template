@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
 from torch.utils.data import Dataset, DataLoader
@@ -24,9 +25,9 @@ def make_fake_dataset():
     return pl.DataFrame({"id": sequence_ids, "input": sequences, "label": labels})
 
 
-def make_splits(df: pl.DataFrame, train_size: float, random_state: int):
+def make_splits(data: Iterable, train_size: float, random_state: int):
     train, val_test = train_test_split(
-        df, train_size=train_size, random_state=random_state, shuffle=True
+        data, train_size=train_size, random_state=random_state, shuffle=True
     )
     val, test = train_test_split(
         val_test, train_size=0.5, random_state=random_state, shuffle=False
