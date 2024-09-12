@@ -43,8 +43,9 @@ def remove_worse_checkpoints(
             checkpoint.unlink()
 
 
+# TODO may want the regex pattern to be configurable
 def get_best_checkpoint_path(checkpoint_config: CheckpointConfig) -> Path:
-    checkpoint_paths = list(checkpoint_config.path.glob("*val_loss*.pt"))
+    checkpoint_paths = list(checkpoint_config.path.glob("*.pt"))
     if len(checkpoint_paths) == 0:
         raise FileNotFoundError(f"No checkpoints found in {checkpoint_config.path}.")
     metrics = []
@@ -62,6 +63,7 @@ def get_best_checkpoint_path(checkpoint_config: CheckpointConfig) -> Path:
     return checkpoint_paths[index]
 
 
+# TODO load optimizer as well so training can be resumed from a checkpoint
 def load_best_checkpoint(filepath: Path, model_class: type[nn.Module]) -> nn.Module:
     checkpoint = torch.load(filepath, weights_only=True)
     model = model_class(**checkpoint["model_config"])
