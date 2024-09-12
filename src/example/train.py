@@ -33,16 +33,17 @@ def train_model(dataloaders: DataLoaders, config: Config):
             train_loss = criterion(outputs, labels)
             train_loss.backward()
             optimizer.step()
-        val_loss = evaluate_model(
-            model=model,
-            dataloader=dataloaders.val,
-            metrics={"val_loss": criterion},
-            device=model_device,
-        )
+        if epoch % config.trainer.eval_every_n_epochs == 0:
+            val_loss = evaluate_model(
+                model=model,
+                dataloader=dataloaders.val,
+                metrics={"val_loss": criterion},
+                device=model_device,
+            )
         if val_loss["val_loss"] < min_val_loss:
             min_val_loss = val_loss["val_loss"]
             checkpoint_model(
-                path=config.checkpoint_path,
+                path=config.checkpoint.path,
                 model=model,
                 optimizer=optimizer,
                 epoch=epoch,

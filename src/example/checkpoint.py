@@ -4,7 +4,7 @@ from numpy import argmin, argmax
 import torch
 import torch.nn as nn
 
-from example.config import ModelConfig, OptimizerConfig
+from example.config import CheckpointConfig, ModelConfig, OptimizerConfig
 
 
 def checkpoint_model(
@@ -35,33 +35,33 @@ def checkpoint_model(
     )
 
 
-def cleanup_checkpoints(checkpoint_dir: Path, mode: str) -> None:
-    checkpoint_paths = list(checkpoint_dir.glob("*"))
-    best_checkpoint = get_best_checkpoint_path(checkpoint_dir, mode)
+def cleanup_checkpoints(checkpoint_config: CheckpointConfig) -> None:
+    checkpoint_paths = list(checkpoint_config.path.glob("*"))
+    best_checkpoint = get_best_checkpoint_path(checkpoint_config)
     for checkpoint in checkpoint_paths:
         if checkpoint == best_checkpoint:
             checkpoint.unlink()
 
 
-def get_best_checkpoint_path(checkpoint_dir: Path, mode: str) -> Path:
-    checkpoint_paths = list(checkpoint_dir.glob("*"))
+def get_best_checkpoint_path(checkpoint_config: CheckpointConfig) -> Path:
+    checkpoint_paths = list(checkpoint_config.path.glob("*.pt"))
     metrics = [
         float(match.group(0))
         for filepath in checkpoint_paths
         if (match := search(r"(\d+\.\d+)\.pt", filepath.stem))
     ]
-    match mode:
-        case "min":
+    match checkpoint_config.mode:
+        case "minimize":
             index = argmin(metrics)
-        case "max":
+        case "maximize":
             index = argmax(metrics)
         case _:
-            raise ValueError("mode must be 'min' or 'max'")
+            raise ValueError("mode must be 'minimize' or 'maximize'")
     return checkpoint_paths[index]
 
 
-def load_best_checkpoint(path: Path, mode: str = "min") -> nn.Module:
-    checkpoint_path = get_best_checkpoint_path(path, mode=mode)
+def load_best_checkpoint(checkpoint_config: CheckpointConfig) -> nn.Module:
+    checkpoint_path = get_best_checkpoint_path(checkpoint_config)
     checkpoint = torch.load(checkpoint_path, weights_only=True)
     model_class = checkpoint["model_class"]
     model = model_class(**checkpoint["model_config"])

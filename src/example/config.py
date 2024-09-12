@@ -26,7 +26,13 @@ class DataLoaderConfig(BaseModel):
 class TrainerConfig(BaseModel):
     max_epochs: int
     gradient_clip: float
+    eval_every_n_epochs: int
     device: str
+
+
+class CheckpointConfig(BaseModel):
+    path: Path
+    mode: str
 
 
 class TunerConfig(BaseModel):
@@ -37,6 +43,14 @@ class EvaluatorConfig(BaseModel):
     n_bootstraps: int
 
 
+class HyperparameterConfig(BaseModel):
+    hidden_dim: dict
+    n_layers: dict
+    lr: dict
+    weight_decay: dict
+    momentum: dict
+
+
 class Config(BaseModel):
     random_state: int
     verbose: bool
@@ -44,10 +58,11 @@ class Config(BaseModel):
     tune: bool
     evaluate: bool
     train_size: float
-    checkpoint_path: Path
     model: ModelConfig
     optimizer: OptimizerConfig
     dataloader: DataLoaderConfig
     trainer: TrainerConfig
+    checkpoint: CheckpointConfig
+    hparams: HyperparameterConfig
     tuner: TunerConfig
     evaluator: EvaluatorConfig

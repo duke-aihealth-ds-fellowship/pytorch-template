@@ -14,6 +14,7 @@ def main():
     with open("config.toml", "rb") as f:
         config_data = load(f)
     config = Config(**config_data)
+    print(config.hparams)
     df = make_fake_sequence_dataset()
     print(df)
     # Make train, validation, and test splits
@@ -27,7 +28,7 @@ def main():
     if config.train:  # Train model with default hyperparameters
         model = train_model(dataloaders=dataloaders, config=config)
     else:  # Load the best model from a previous training or tuning run
-        model = load_best_checkpoint(config.checkpoint_path)
+        model = load_best_checkpoint(checkpoint_config=config.checkpoint)
     if config.evaluate:  # Generate model performance metrics from the test set
         test_metrics = {"AUROC": BinaryAUROC(), "AP": BinaryAveragePrecision()}
         metrics = evaluate_model(
