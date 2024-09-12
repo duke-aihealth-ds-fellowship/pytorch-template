@@ -29,12 +29,13 @@ def bootstrap_metric(
     return bootstrap.compute()["raw"]
 
 
-def compute_metrics(
-    outputs: torch.Tensor,
-    labels: torch.Tensor,
+def evaluate_model(
+    model: nn.Module,
+    dataloader: DataLoader,
     metrics: dict[str, Callable],
     n_bootstraps: int | None = None,
 ):
+    outputs, labels = get_predictions(model=model, dataloader=dataloader)
     results = {}
     for name, metric in metrics.items():
         metric.to(outputs.device)
@@ -46,16 +47,6 @@ def compute_metrics(
     return results
 
 
-def evaluate_model(
-    model: nn.Module,
-    dataloader: DataLoader,
-    metrics: dict[str, Callable],
-    n_bootstraps: int | None = None,
-):
-    outputs, labels = get_predictions(model=model, dataloader=dataloader)
-    return compute_metrics(outputs, labels, metrics, n_bootstraps)
-
-
-# TODO
+# TODO generate metrics for subsets of the data
 def evaluate_subsets(df: pl.DataFrame, groups: list[str]):
     pass

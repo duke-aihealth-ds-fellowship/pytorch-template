@@ -1,99 +1,38 @@
-# TODO add hyperparameter tuning code here
 from functools import partial
 from optuna import create_study, Trial
 from optuna.samplers import TPESampler
-from torch.utils.data import DataLoader
+import torch.nn as nn
 
+from example.config import Config
+from example.dataset import Splits
 from example.evaluate import evaluate_model
-from example.train import make_components, train_model
+from example.train import train_model
 
 
-def objective(
-    trial: Trial,
-    train_loader: DataLoader,
-    val_loader: DataLoader,
-    vocab_size: int,
-    embedding_dim: int,
-    padding_idx: int,
-    output_dim: int,
-    max_epochs: int,
-    device: str,
-) -> float:
-    hyperparameters = {
-        "hidden_dim": trial.suggest_categorical(
-            name="hidden_dim", choices=[16, 32, 64]
-        ),
-        "n_layers": trial.suggest_int(name="n_layers", low=1, high=6),
-        "lr": trial.suggest_float(name="lr", low=1e-5, high=1e-2),
-        "weight_decay": trial.suggest_float(name="weight_decay", low=1e-10, high=1e-2),
-        "momentum": trial.suggest_float(name="momentum", low=0.9, high=0.99),
-    }
-    model, optimizer, criterion = make_components(
-        vocab_size=vocab_size,
-        embedding_dim=embedding_dim,
-        padding_idx=padding_idx,
-        output_dim=output_dim,
-        device=device,
-        **hyperparameters,
+def sample_hyperparameters(trial: Trial, config: Config):
+    config.model.hidden_dim = trial.suggest_categorical(
+        name="hidden_dim", choices=[16, 32, 64]
     )
-    model = train_model(
-        model=model,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        optimizer=optimizer,
-        criterion=criterion,
-        max_epochs=max_epochs,
+    config.model.n_layers = trial.suggest_int(name="n_layers", low=1, high=6)
+    config.optimizer.lr = trial.suggest_float(name="lr", low=1e-5, high=1e-2)
+    config.optimizer.weight_decay = trial.suggest_float(
+        name="weight_decay", low=1e-10, high=1e-2
     )
-    metrics = evaluate_model(
-        model=model, dataloader=val_loader, metrics={"val_loss": criterion}
-    )
-    return metrics["val_loss"].item()
+    config.optimizer.momentum = trial.suggest_float(name="momentum", low=0.9, high=0.99)
+    return config
 
 
-def tune_model(
-    train_loader,
-    val_loader,
-    n_trials: int,
-    vocab_size: int,
-    embedding_dim: int,
-    padding_idx: int,
-    output_dim: int,
-    max_epochs: int,
-    device: str,
-    random_seed: int,
-):
-    sampler = TPESampler(seed=random_seed)
-    study = create_study(
-        sampler=sampler,
-        direction="minimize",
-        study_name="ABCD",
-    )
-    objective_function = partial(
-        objective,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        vocab_size=vocab_size,
-        embedding_dim=embedding_dim,
-        padding_idx=padding_idx,
-        output_dim=output_dim,
-        max_epochs=max_epochs,
-        device=device,
-    )
-    study.optimize(func=objective_function, n_trials=n_trials)
-    model, optimizer, criterion = make_components(
-        vocab_size=vocab_size,
-        embedding_dim=embedding_dim,
-        padding_idx=padding_idx,
-        output_dim=output_dim,
-        device=device,
-        **study.best_params,
-    )
-    model = train_model(
-        model=model,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        optimizer=optimizer,
-        criterion=criterion,
-        max_epochs=max_epochs,
-    )
-    return model
+def objective(trial: Trial, dataloaders: Splits, config: Config) -> float:
+    config = sample_hyperparameters(trial, config)
+    model = train_model(dataloaders=dataloaders, config=config)
+    metrics = {"val_loss": nn.CrossEntropyLoss()}
+    val_loss = evaluate_model(model=model, dataloader=dataloaders.val, metrics=metrics)
+    return val_loss["val_loss"].item()
+
+
+def tune_model(dataloaders: Splits, config: Config):
+    sampler = TPESampler(seed=config.random_seed)
+    study = create_study(sampler=sampler, direction="minimize", study_name="ABCD")
+    objective_function = partial(objective, dataloaders=dataloaders, config=config)
+    study.optimize(func=objective_function, n_trials=config.tuner.n_trials)
+    return study

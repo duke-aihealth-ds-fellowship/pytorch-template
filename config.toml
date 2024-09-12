@@ -1,31 +1,34 @@
 random_seed = 42
-tune = true
+train = true                         # train using default hyperparameters
+tune = true                          # tune hyperparameters
 evaluate = true
-n_trials = 3
 train_size = 0.8
-n_bootstraps = 100
-padding_idx = 0
-num_workers = 0    # > 1 for multiprocessing
-device = "mps"     # "cpu", "cuda" or "mps"
+checkpoint_path = "data/checkpoints"
 
 [model]
 embedding_dim = 256
 hidden_dim = 64
 n_layers = 3
 output_dim = 1
+padding_idx = 0
 
 [optimizer]
 lr = 1e-5
 momentum = 0.9
 weight_decay = 1e-6
 
-[training]
-max_epochs = 10
+[dataloader]
 batch_size = 32
-gradient_clip = 1.0
+num_workers = 0   # > 1 for multiprocessing
+pin_memory = true
 
-[filepaths]
-dataset = "path/to/data"
-train = "train.csv"
-val = "val.csv"
-test = "test.csv"
+[trainer]
+max_epochs = 10
+gradient_clip = 1.0
+device = "mps"      # "cpu", "cuda" or "mps"
+
+[tuner]
+n_trials = 16
+
+[evaluator]
+n_bootstraps = 1000

@@ -11,9 +11,9 @@ pip install -e path/to/repo
 ```
 
 ### Usage
-Give the package a new name (set to "example" by default) by modifying it in pyproject.toml and the package directory in `src`. After which you can run the package with:
+Give the package a new name (currentlt set to "example" in this repo) by modifying it in pyproject.toml and in the package directory `src`. After which you can run the package with:
 ```bash
-python3 -m your_package_name
+python3 -m mynewpackage
 ```
 
 ### Implemented components

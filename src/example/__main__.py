@@ -3,10 +3,13 @@ from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
 import polars as pl
 
 from example.evaluate import evaluate_model
+from example.model import EmbeddingModel
 from example.tune import tune_model
 from example.config import Config
 from example.dataset import make_dataloaders, make_fake_dataset, make_splits
-from example.train import make_components, train_model
+from example.train import train_model
+from example.checkpoint import load_best_checkpoint
+import json
 
 
 def main():
@@ -19,57 +22,26 @@ def main():
     train, val, test = make_splits(
         df, train_size=config.train_size, random_state=config.random_seed
     )
-    vocab_size = train["input"].explode().n_unique()
-    train_loader, val_loader, test_loader = make_dataloaders(
-        train=train,
-        val=val,
-        test=test,
-        batch_size=config.training.batch_size,
-        num_workers=config.num_workers,
-        device=config.device,
+    dataloaders = make_dataloaders(
+        train=train, val=val, test=test, dataloader_config=config.dataloader
     )
+    vocab_size = train["input"].explode().n_unique()
+    config.model.vocab_size = vocab_size
     if config.tune:
-        model = tune_model(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            n_trials=config.n_trials,
-            vocab_size=vocab_size,
-            embedding_dim=config.model.embedding_dim,
-            output_dim=config.model.output_dim,
-            padding_idx=config.padding_idx,
-            max_epochs=config.training.max_epochs,
-            device=config.device,
-            random_seed=config.random_seed,
-        )
+        study = tune_model(dataloaders, config=config)
+        print("Best model hyperparameters:\n", json.dumps(study.best_params, indent=4))
+        print(f"Best model checkpoint saved in: {config.checkpoint_path}")
+    if config.train:
+        model = train_model(dataloaders=dataloaders, config=config)
     else:
-        model, optimizer, criterion = make_components(
-            vocab_size=vocab_size,
-            embedding_dim=config.model.embedding_dim,
-            padding_idx=config.padding_idx,
-            device=config.device,
-            hidden_dim=config.model.hidden_dim,
-            output_dim=config.model.output_dim,
-            n_layers=config.model.n_layers,
-            lr=config.optimizer.lr,
-            momentum=config.optimizer.momentum,
-            weight_decay=config.optimizer.weight_decay,
-        )
-        model = train_model(
-            model=model,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            optimizer=optimizer,
-            criterion=criterion,
-            max_epochs=config.training.max_epochs,
-        )
+        model = load_best_checkpoint(config.checkpoint_path, model_class=EmbeddingModel)
     if config.evaluate:
-        # you can add or remove metrics here
         test_metrics = {"AUROC": BinaryAUROC(), "AP": BinaryAveragePrecision()}
         metrics = evaluate_model(
             model=model,
-            dataloader=test_loader,
+            dataloader=dataloaders.test,
             metrics=test_metrics,
-            n_bootstraps=config.n_bootstraps,
+            n_bootstraps=config.evaluator.n_bootstraps,
         )
         # warning, this code is only for demonstration purposes and
         # will likely break for multiclass or multilabel metrics
