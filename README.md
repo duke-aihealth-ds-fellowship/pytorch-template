@@ -8,11 +8,13 @@ This project is a template to jump-start PyTorch projects. It is designed to be 
 
 ## Installation
 
+Fork and clone the repo from the web or command line:
+
 ```bash
-git clone https://github.com/Elliot-D-Hill/pytorch-template.git
+gh repo fork https://github.com/duke-aihealth-ds-fellowship/pytorch-template.git --clone
 ```
 
-After cloning the repo, give the package a new name (currently set to "template" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/template`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
+You will need to have the GitHub CLI installed to use the `gh`. After forking the repo, give the package a new name (currently set to "template" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/template`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
 
 ```bash
 pip install -e path/to/repo
