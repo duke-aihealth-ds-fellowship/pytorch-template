@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.utils import clip_grad_norm_
 from torch.optim.sgd import SGD
 from tqdm import tqdm
 
@@ -38,16 +39,18 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
             outputs = model(inputs)
             train_loss = criterion(outputs, labels)
             train_loss.backward()
+            clip_grad_norm_(model.parameters(), max_norm=config.trainer.gradient_clip)
             optimizer.step()
+
         if epoch % config.trainer.eval_every_n_epochs == 0:
             val_loss = evaluate_model(
                 model=model,
                 dataloader=dataloaders.val,
                 metrics={"val_loss": criterion},
                 device=model_device,
-            )
-        if val_loss["val_loss"] < min_val_loss:
-            min_val_loss = val_loss["val_loss"]
+            )["val_loss"]
+        if val_loss < min_val_loss:
+            min_val_loss = val_loss
             checkpoint_model(
                 path=config.checkpoint.path,
                 model=model,
@@ -59,7 +62,7 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
                 optimizer_config=config.optimizer,
             )
             progress_bar.set_postfix_str(
-                f"train loss: {train_loss.item():.4f}; val loss: {val_loss['val_loss']:.4f}"
+                f"train loss: {train_loss.item():.4f}; val loss: {val_loss:.4f}"
             )
             early_stopping = 0
         early_stopping += 1
