@@ -41,7 +41,6 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
             train_loss.backward()
             clip_grad_norm_(model.parameters(), max_norm=config.trainer.gradient_clip)
             optimizer.step()
-
         if epoch % config.trainer.eval_every_n_epochs == 0:
             val_loss = evaluate_model(
                 model=model,

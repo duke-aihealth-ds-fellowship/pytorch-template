@@ -60,8 +60,6 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 
 ### TODO
 
-- Early stopping
-- Gradient clipping
 - Logging
 - Distributed training
 - More toy datasets modalities, e.g., images, tabular, etc.
