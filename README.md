@@ -12,10 +12,10 @@ This project is a template to jump-start PyTorch projects. It is designed to be 
 git clone https://github.com/Elliot-D-Hill/pytorch-template.git
 ```
 
-After cloning the repo, give the package a new name (currently set to "example" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/example`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
+After cloning the repo, give the package a new name (currently set to "template" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/template`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
 
 ```bash
-pip install -e path/to/cloned/repo
+pip install -e path/to/repo
 ```
 
 Now you can easily import modules, functions, and classes from your package with. For example:
@@ -42,6 +42,7 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 - Custom PyTorch dataset
 - Dataloaders for train, validation, and test splits
 - A training loop
+- Early stopping
 - Model checkpointing
 - Hyperparameter tuning with Optuna
 - Model evaluation with TorchMetrics
@@ -62,4 +63,5 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 
 - Logging
 - Distributed training
+- Learning rate schedulers
 - More toy datasets modalities, e.g., images, tabular, etc.
