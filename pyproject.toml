@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "example"
+name = "template"
 version = "0.0.1"
 authors = [{ name = "Example Author", email = "author@example.com" }]
-description = "A small example package"
+description = "A pytorch template package"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -16,5 +16,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/pypa/template"
-"Bug Tracker" = "https://github.com/pypa/template/issues"
+"Homepage" = "https://github.com/duke-aihealth-ds-fellowship/pytorch-template"
+"Bug Tracker" = "https://github.com/duke-aihealth-ds-fellowship/pytorch-template/issues"

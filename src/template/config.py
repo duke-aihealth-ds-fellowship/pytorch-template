@@ -27,6 +27,7 @@ class TrainerConfig(BaseModel):
     max_epochs: int
     gradient_clip: float
     eval_every_n_epochs: int
+    early_stopping_patience: int
     device: str
 
 

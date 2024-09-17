@@ -1,14 +1,14 @@
 from tomllib import load
 from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
 
-from example.config import Config
-from example.dataset import make_dataloaders, make_splits
-from example.evaluate import evaluate_model
-from example.model import EmbeddingModel
-from example.tune import tune_model
-from example.train import train_model
-from example.checkpoint import get_best_checkpoint_path, load_best_checkpoint
-from example.examples import make_fake_sequence_dataset
+from template.config import Config
+from template.dataset import make_dataloaders, make_splits
+from template.evaluate import evaluate_model
+from template.model import EmbeddingModel
+from template.tune import tune_model
+from template.train import train_model
+from template.checkpoint import get_best_checkpoint_path, load_best_checkpoint
+from template.examples import make_fake_sequence_dataset
 
 
 def main():

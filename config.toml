@@ -27,7 +27,8 @@ pin_memory = true
 max_epochs = 10
 gradient_clip = 1.0
 eval_every_n_epochs = 1
-device = "mps"          # "cpu", "cuda" or "mps"
+early_stopping_patience = 3
+device = "mps"              # "cpu", "cuda" or "mps"
 
 [checkpoint]
 path = "data/checkpoints"

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
-from example.config import CheckpointConfig, ModelConfig, OptimizerConfig
+from template.config import CheckpointConfig, ModelConfig, OptimizerConfig
 
 
 def checkpoint_model(

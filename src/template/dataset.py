@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 from sklearn.model_selection import train_test_split
 
-from example.config import DataLoaderConfig
+from template.config import DataLoaderConfig
 
 
 @dataclass

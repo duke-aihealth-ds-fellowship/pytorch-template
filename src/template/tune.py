@@ -5,10 +5,10 @@ from optuna import create_study, Trial
 from optuna.samplers import TPESampler
 import torch
 
-from example.checkpoint import get_best_checkpoint_path
-from example.config import Config
-from example.dataset import DataLoaders
-from example.train import train_model
+from template.checkpoint import get_best_checkpoint_path
+from template.config import Config
+from template.dataset import DataLoaders
+from template.train import train_model
 
 
 def sample_hyperparameters(trial: Trial, config: Config):
