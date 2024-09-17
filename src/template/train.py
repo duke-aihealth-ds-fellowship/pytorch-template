@@ -1,17 +1,18 @@
 import torch
 import torch.nn as nn
+from torch.nn.utils import clip_grad_norm_
 from torch.optim.sgd import SGD
 from tqdm import tqdm
 
-from example.checkpoint import (
+from template.checkpoint import (
     checkpoint_model,
     remove_worse_checkpoints,
     get_best_checkpoint_path,
 )
-from example.config import Config
-from example.dataset import DataLoaders
-from example.model import EmbeddingModel
-from example.evaluate import evaluate_model
+from template.config import Config
+from template.dataset import DataLoaders
+from template.model import EmbeddingModel
+from template.evaluate import evaluate_model
 
 
 def make_components(config: Config):
@@ -27,7 +28,10 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
     model.to(model_device)
     progress_bar = tqdm(range(config.trainer.max_epochs), desc="Epoch")
     min_val_loss = float("inf")
+    early_stopping = 0
     for epoch in progress_bar:
+        if early_stopping > config.trainer.early_stopping_patience:
+            break
         for inputs, labels in dataloaders.train:
             inputs = inputs.to(model_device)
             labels = labels.to(model_device)
@@ -35,6 +39,7 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
             outputs = model(inputs)
             train_loss = criterion(outputs, labels)
             train_loss.backward()
+            clip_grad_norm_(model.parameters(), max_norm=config.trainer.gradient_clip)
             optimizer.step()
         if epoch % config.trainer.eval_every_n_epochs == 0:
             val_loss = evaluate_model(
@@ -42,9 +47,9 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
                 dataloader=dataloaders.val,
                 metrics={"val_loss": criterion},
                 device=model_device,
-            )
-        if val_loss["val_loss"] < min_val_loss:
-            min_val_loss = val_loss["val_loss"]
+            )["val_loss"]
+        if val_loss < min_val_loss:
+            min_val_loss = val_loss
             checkpoint_model(
                 path=config.checkpoint.path,
                 model=model,
@@ -55,9 +60,11 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
                 model_config=config.model,
                 optimizer_config=config.optimizer,
             )
-        progress_bar.set_postfix_str(
-            f"train loss: {train_loss.item():.4f}; val loss: {val_loss['val_loss']:.4f}"
-        )
+            progress_bar.set_postfix_str(
+                f"train loss: {train_loss.item():.4f}; val loss: {val_loss:.4f}"
+            )
+            early_stopping = 0
+        early_stopping += 1
     best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
     remove_worse_checkpoints(
         best_checkpoint_path, checkpoint_path=config.checkpoint.path
