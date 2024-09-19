@@ -6,13 +6,13 @@ from tqdm import tqdm
 
 from template.checkpoint import (
     checkpoint_model,
-    remove_worse_checkpoints,
     get_best_checkpoint_path,
+    remove_worse_checkpoints,
 )
 from template.config import Config
 from template.dataset import DataLoaders
-from template.model import EmbeddingModel
 from template.evaluate import evaluate_model
+from template.model import EmbeddingModel
 
 
 def make_components(config: Config):
@@ -32,6 +32,7 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
     for epoch in progress_bar:
         if early_stopping > config.trainer.early_stopping_patience:
             break
+        epoch_train_loss = 0
         for inputs, labels in dataloaders.train:
             inputs = inputs.to(model_device)
             labels = labels.to(model_device)
@@ -41,6 +42,8 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
             train_loss.backward()
             clip_grad_norm_(model.parameters(), max_norm=config.trainer.gradient_clip)
             optimizer.step()
+            epoch_train_loss += train_loss.item() * inputs.size(0)
+        epoch_train_loss = epoch_train_loss / len(dataloaders.train)
         if epoch % config.trainer.eval_every_n_epochs == 0:
             val_loss = evaluate_model(
                 model=model,
@@ -55,7 +58,7 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
                 model=model,
                 optimizer=optimizer,
                 epoch=epoch,
-                train_loss=train_loss.item(),
+                train_loss=epoch_train_loss,
                 val_loss=min_val_loss,
                 model_config=config.model,
                 optimizer_config=config.optimizer,
@@ -65,7 +68,7 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
             )
             early_stopping = 0
         early_stopping += 1
-    best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
-    remove_worse_checkpoints(
-        best_checkpoint_path, checkpoint_path=config.checkpoint.path
-    )
+        best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
+        remove_worse_checkpoints(
+            best_checkpoint_path, checkpoint_path=config.checkpoint.path
+        )
