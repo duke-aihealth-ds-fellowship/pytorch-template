@@ -43,7 +43,7 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
             clip_grad_norm_(model.parameters(), max_norm=config.trainer.gradient_clip)
             optimizer.step()
             epoch_train_loss += train_loss.item() * inputs.size(0)
-        epoch_train_loss = epoch_train_loss / len(dataloaders.train)
+        epoch_train_loss = epoch_train_loss / len(dataloaders.train.dataset)
         if epoch % config.trainer.eval_every_n_epochs == 0:
             val_loss = evaluate_model(
                 model=model,
@@ -64,7 +64,7 @@ def train_model(dataloaders: DataLoaders, config: Config) -> None:
                 optimizer_config=config.optimizer,
             )
             progress_bar.set_postfix_str(
-                f"train loss: {train_loss.item():.4f}; val loss: {val_loss:.4f}"
+                f"train loss: {epoch_train_loss.item():.4f}; val loss: {val_loss:.4f}"
             )
             early_stopping = 0
         early_stopping += 1
