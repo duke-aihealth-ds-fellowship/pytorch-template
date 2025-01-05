@@ -1,22 +1,25 @@
 from collections.abc import Callable
+
 import polars as pl
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from torchmetrics.wrappers import BootStrapper
 
+from template.config import Config
+from template.model import EmbeddingModel
+from template.tune import load_best_checkpoint
 
-def get_predictions(
-    model: nn.Module, dataloader: DataLoader, device: torch.device | str
-):
-    model.to(device)
+
+def get_predictions(cfg: Config, dataloader: DataLoader):
+    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
+    model.to(cfg.trainer.device)
     model.eval()
     output_batches = []
     label_batches = []
     for inputs, labels in dataloader:
-        inputs = inputs.to(device)
-        labels = labels.to(device)
+        inputs = inputs.to(cfg.trainer.device)
+        labels = labels.to(cfg.trainer.device)
         with torch.no_grad():
             outputs = model(inputs)
         output_batches.append(outputs)
@@ -35,19 +38,23 @@ def bootstrap_metric(
 
 
 def evaluate_model(
-    model: nn.Module,
+    cfg: Config,
     dataloader: DataLoader,
     metrics: dict[str, Callable],
-    device: torch.device | str,
-    n_bootstraps: int | None = None,
+    n_bootstraps: int = 0,
 ) -> dict:
-    outputs, labels = get_predictions(model=model, dataloader=dataloader, device=device)
+    outputs, labels = get_predictions(cfg=cfg, dataloader=dataloader)
     results = {}
     for name, metric in metrics.items():
         if issubclass(type(metric), Metric):
             labels = labels.long()
         if n_bootstraps:
-            results[name] = bootstrap_metric(metric, outputs, labels, n_bootstraps)
+            results[name] = bootstrap_metric(
+                metric,
+                outputs,
+                labels,
+                n_bootstraps=cfg.evaluator.n_bootstraps,
+            )
         else:
             results[name] = metric(outputs, labels)
     return results

@@ -1,74 +1,85 @@
 import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
+from torch.optim.optimizer import Optimizer
 from torch.optim.sgd import SGD
 from tqdm import tqdm
 
-from template.checkpoint import (
-    checkpoint_model,
-    get_best_checkpoint_path,
-    remove_worse_checkpoints,
-)
 from template.config import Config
 from template.dataset import DataLoaders
-from template.evaluate import evaluate_model
 from template.model import EmbeddingModel
 
 
-def make_components(config: Config):
-    model = EmbeddingModel(**config.model.model_dump())
-    optimizer = SGD(model.parameters(), **config.optimizer.model_dump())
-    criterion = nn.BCEWithLogitsLoss()
-    return model, optimizer, criterion
+class Trainer:
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Optimizer,
+        criterion: nn.Module,
+        dataloaders: DataLoaders,
+        cfg: Config,
+        device: str | torch.device,
+    ):
+        self.model = model
+        self.model.to(device)
+        self.optimizer = optimizer
+        self.criterion = criterion
+        self.dataloaders = dataloaders
+        self.cfg = cfg
+        self.device = device
 
-
-def train_model(dataloaders: DataLoaders, config: Config) -> None:
-    model, optimizer, criterion = make_components(config=config)
-    model_device = torch.device(config.trainer.device)
-    model.to(model_device)
-    progress_bar = tqdm(range(config.trainer.max_epochs), desc="Epoch")
-    min_val_loss = float("inf")
-    early_stopping = 0
-    for epoch in progress_bar:
-        if early_stopping > config.trainer.early_stopping_patience:
-            break
-        train_loss = 0
-        for inputs, labels in dataloaders.train:
-            inputs = inputs.to(model_device)
-            labels = labels.to(model_device)
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            clip_grad_norm_(model.parameters(), max_norm=config.trainer.gradient_clip)
-            optimizer.step()
-            train_loss += loss.item() * inputs.size(0)
-        epoch_train_loss = train_loss / len(dataloaders.train.dataset)
-        if epoch % config.trainer.eval_every_n_epochs == 0:
-            val_loss = evaluate_model(
-                model=model,
-                dataloader=dataloaders.val,
-                metrics={"val_loss": criterion},
-                device=model_device,
-            )["val_loss"]
-        if val_loss < min_val_loss:
-            min_val_loss = val_loss
-            checkpoint_model(
-                path=config.checkpoint.path,
-                model=model,
-                optimizer=optimizer,
-                epoch=epoch,
-                train_loss=epoch_train_loss,
-                val_loss=min_val_loss,
-                model_config=config.model,
-                optimizer_config=config.optimizer,
-            )
-            progress_bar.set_postfix_str(
-                f"train loss: {epoch_train_loss.item():.4f}; val loss: {val_loss:.4f}"
-            )
-            early_stopping = 0
-        early_stopping += 1
-        best_checkpoint_path = get_best_checkpoint_path(config.checkpoint)
-        remove_worse_checkpoints(
-            best_checkpoint_path, checkpoint_path=config.checkpoint.path
+    def train_step(self, inputs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        inputs = inputs.to(self.device)
+        labels = labels.to(self.device)
+        self.optimizer.zero_grad()
+        outputs = self.model(inputs)
+        loss: torch.Tensor = self.criterion(outputs, labels)
+        loss.backward()
+        clip_grad_norm_(
+            self.model.parameters(), max_norm=self.cfg.trainer.gradient_clip
         )
+        self.optimizer.step()
+        return loss
+
+    @torch.no_grad()
+    def validate(self) -> float:
+        self.model.eval()
+        loss = 0
+        for inputs, labels in self.dataloaders.validation:
+            inputs = inputs.to(self.device)
+            labels = labels.to(self.device)
+            outputs = self.model(inputs)
+            loss += self.criterion(outputs, labels)
+        validation_loss = loss / len(self.dataloaders.validation)
+        return validation_loss
+
+    def train(self) -> None:
+        progress_bar = tqdm(range(self.cfg.trainer.max_epochs), desc="Epoch")
+        for epoch in progress_bar:
+            self.model.train()
+            train_loss = 0
+            for inputs, labels in self.dataloaders.train:
+                loss = self.train_step(inputs, labels)
+                train_loss += loss
+            train_loss = train_loss / len(self.dataloaders.train)
+            if epoch % self.cfg.trainer.eval_every_n_epochs == 0:
+                validation_loss = self.validate()
+                progress_bar.set_postfix_str(
+                    f"Train loss: {train_loss.item():.4f}, "
+                    "Validation loss: {validation_loss:.4f}"
+                )
+        return validation_loss
+
+
+def make_trainer(cfg: Config, dataloaders: DataLoaders) -> Trainer:
+    model = EmbeddingModel(**cfg.model.model_dump())
+    optimizer = SGD(model.parameters(), **cfg.optimizer.model_dump())
+    criterion = nn.BCEWithLogitsLoss()
+    return Trainer(
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        dataloaders=dataloaders,
+        cfg=cfg,
+        device=cfg.trainer.device,
+    )

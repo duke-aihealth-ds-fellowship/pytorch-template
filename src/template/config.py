@@ -1,4 +1,3 @@
-from pathlib import Path
 from pydantic import BaseModel
 
 
@@ -31,13 +30,9 @@ class TrainerConfig(BaseModel):
     device: str
 
 
-class CheckpointConfig(BaseModel):
-    path: Path
-    mode: str
-
-
 class TunerConfig(BaseModel):
     n_trials: int
+    direction: str
 
 
 class EvaluatorConfig(BaseModel):
@@ -63,7 +58,6 @@ class Config(BaseModel):
     optimizer: OptimizerConfig
     dataloader: DataLoaderConfig
     trainer: TrainerConfig
-    checkpoint: CheckpointConfig
     hparams: HyperparameterConfig
     tuner: TunerConfig
     evaluator: EvaluatorConfig
