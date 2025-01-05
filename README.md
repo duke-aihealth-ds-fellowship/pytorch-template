@@ -8,19 +8,21 @@ This project is a template to jump-start PyTorch projects. It is designed to be 
 
 ## Installation
 
-Fork and clone the repo from the web or command line:
+Fork or clone the repo from the web or command line:
 
 ```bash
 gh repo fork https://github.com/duke-aihealth-ds-fellowship/pytorch-template.git --clone
 ```
 
-You will need to have the GitHub CLI installed to use the `gh`. After forking the repo, give the package a new name (currently set to "template" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/template`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
+You will need to have the GitHub CLI installed to use `gh`. After forking the repo, give the package a new name (currently set to "template" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/template`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
 
 ```bash
 pip install -e path/to/repo
 ```
 
-Now you can easily import modules, functions, and classes from your package with. For example:
+The argument argument `-e` stands for 'editable' mode. This setting makes it so that changes made to the package are reflected in the code behavior in real-time so that you don't have to keep reinstalling the package when you modify it.
+
+Now you can easily import modules, functions, and classes from your package. For example:
 
 ```python
 from mypackage.model import MyModel
@@ -40,13 +42,12 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 
 ## Implemented components
 
-- Configuration with Pydantic
+- Configuration and validation with Pydantic
 - Custom PyTorch dataset
 - Dataloaders for train, validation, and test splits
 - A training loop
-- Early stopping
-- Model checkpointing
 - Hyperparameter tuning with Optuna
+- Model checkpointing
 - Model evaluation with TorchMetrics
 
 ## Toy dataset examples
