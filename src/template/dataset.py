@@ -14,7 +14,7 @@ from template.config import DataLoaderConfig
 @dataclass
 class Datasets:
     train: Dataset
-    val: Dataset
+    validation: Dataset
     test: Dataset
 
 
@@ -27,22 +27,22 @@ class SequenceDataset(Dataset):
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         df: pl.DataFrame = self.df[idx]
-        inputs = torch.tensor(df["input"].item(), dtype=torch.long)
-        labels = torch.tensor(df["label"].item(), dtype=torch.float)
+        inputs = torch.tensor(df["input"].item(), dtype=torch.int)
+        labels = torch.tensor(df["label"].item(), dtype=torch.int)
         return inputs, labels
 
 
 # TODO SequenceDataset is specific to the example dataset, make generic
 def make_splits(data: Iterable, train_size: float, random_state: int) -> Datasets:
-    train, val_test = train_test_split(
+    train, validation_test = train_test_split(
         data, train_size=train_size, random_state=random_state, shuffle=True
     )
-    val, test = train_test_split(
-        val_test, train_size=0.5, random_state=random_state, shuffle=False
+    validation, test = train_test_split(
+        validation_test, train_size=0.5, random_state=random_state, shuffle=False
     )
     return Datasets(
         train=SequenceDataset(train),
-        val=SequenceDataset(val),
+        validation=SequenceDataset(validation),
         test=SequenceDataset(test),
     )
 
@@ -50,7 +50,7 @@ def make_splits(data: Iterable, train_size: float, random_state: int) -> Dataset
 def collate_batch(batch: list[tuple]) -> tuple[torch.Tensor, torch.Tensor]:
     inputs, labels = zip(*batch)
     inputs = pad_sequence(inputs, batch_first=True)
-    labels = torch.stack(labels).unsqueeze(1)
+    labels = torch.stack(labels)
     return inputs, labels
 
 
@@ -65,6 +65,6 @@ def make_dataloaders(splits: Datasets, cfg: DataLoaderConfig):
     dataloader = partial(DataLoader, collate_fn=collate_batch, **cfg.model_dump())
     return DataLoaders(
         train=dataloader(dataset=splits.train, shuffle=True),
-        val=dataloader(dataset=splits.val, shuffle=False),
+        validation=dataloader(dataset=splits.validation, shuffle=False),
         test=dataloader(dataset=splits.test, shuffle=False),
     )

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic import BaseModel
 
 
@@ -6,8 +8,8 @@ class ModelConfig(BaseModel):
     embedding_dim: int
     hidden_dim: int
     n_layers: int
-    output_dim: int
     padding_idx: int
+    output_dim: int = -1  # set at run time
 
 
 class OptimizerConfig(BaseModel):
@@ -32,19 +34,17 @@ class TrainerConfig(BaseModel):
 
 class TunerConfig(BaseModel):
     n_trials: int
-    direction: str
-
-
-class EvaluatorConfig(BaseModel):
-    n_bootstraps: int
-
-
-class HyperparameterConfig(BaseModel):
+    checkpoint: Path
+    hyperparameters: Path
     hidden_dim: dict
     n_layers: dict
     lr: dict
     weight_decay: dict
     momentum: dict
+
+
+class EvaluatorConfig(BaseModel):
+    n_bootstraps: int
 
 
 class Config(BaseModel):
@@ -54,10 +54,10 @@ class Config(BaseModel):
     tune: bool
     evaluate: bool
     train_size: float
+    data_dir: Path
     model: ModelConfig
     optimizer: OptimizerConfig
     dataloader: DataLoaderConfig
     trainer: TrainerConfig
-    hparams: HyperparameterConfig
     tuner: TunerConfig
     evaluator: EvaluatorConfig

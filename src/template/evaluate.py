@@ -2,9 +2,9 @@ import polars as pl
 import torch
 from torch.utils.data import DataLoader
 from torchmetrics.classification import (
-    BinaryAccuracy,
-    BinaryAUROC,
-    BinaryAveragePrecision,
+    MulticlassAccuracy,
+    MulticlassAUROC,
+    MulticlassAveragePrecision,
 )
 from torchmetrics.wrappers import BootStrapper
 
@@ -15,7 +15,6 @@ from template.tune import load_best_checkpoint
 
 def get_predictions(cfg: Config, dataloader: DataLoader):
     model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
-    model.to(cfg.trainer.device)
     model.eval()
     output_batches = []
     label_batches = []
@@ -46,7 +45,8 @@ def evaluate_model(
 ) -> dict:
     outputs, labels = get_predictions(cfg=cfg, dataloader=dataloader)
     results = {}
-    metrics = [BinaryAUROC(), BinaryAveragePrecision(), BinaryAccuracy()]
+    metrics = [MulticlassAUROC, MulticlassAveragePrecision, MulticlassAccuracy]
+    metrics = [metric(num_classes=cfg.model.output_dim) for metric in metrics]
     for metric in metrics:
         name = metric.__class__.__name__
         if n_bootstraps:

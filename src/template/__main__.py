@@ -9,10 +9,12 @@ from template.tune import tune_hyperparameters
 
 
 def main():
-    with open("cfg.toml", "rb") as f:
+    with open("config.toml", "rb") as f:
         cfg_data = load(f)
     cfg = Config(**cfg_data)
+    cfg.data_dir.mkdir(exist_ok=True, parents=True)
     df = make_fake_sequence_dataset()
+    cfg.model.output_dim = df["label"].n_unique()
     splits = make_splits(df, train_size=cfg.train_size, random_state=cfg.random_state)
     dataloaders = make_dataloaders(splits=splits, cfg=cfg.dataloader)
     if cfg.tune:

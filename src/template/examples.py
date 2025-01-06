@@ -11,7 +11,7 @@ def make_fake_sequence_dataset() -> pl.DataFrame:
     """
     n_samples = 200
     max_sequence_length = 10
-    n_classes = 2
+    n_classes = 3
     vocab_size = 50
     sequence_ids = np.arange(n_samples)
     sequence_lengths = np.random.randint(1, max_sequence_length + 1, size=n_samples)

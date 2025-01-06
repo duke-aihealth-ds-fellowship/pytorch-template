@@ -74,7 +74,7 @@ class Trainer:
 def make_trainer(cfg: Config, dataloaders: DataLoaders) -> Trainer:
     model = EmbeddingModel(**cfg.model.model_dump())
     optimizer = SGD(model.parameters(), **cfg.optimizer.model_dump())
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     return Trainer(
         model=model,
         optimizer=optimizer,

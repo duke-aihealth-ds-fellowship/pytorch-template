@@ -1,16 +1,16 @@
 random_state = 42
 verbose = true
-train = true      # train using default hyperparameters
-tune = false      # tune hyperparameters
+train = false      # train using default hyperparameters
+tune = true      # tune hyperparameters
 evaluate = true   # Generate performance metrics from the test set
 train_size = 0.8
+data_dir = "data/"
 
 [model]
 vocab_size = 100
 embedding_dim = 256
 hidden_dim = 64
 n_layers = 3
-output_dim = 1
 padding_idx = 0
 
 [optimizer]
@@ -30,35 +30,33 @@ eval_every_n_epochs = 1
 early_stopping_patience = 3
 device = "mps"              # "cpu", "cuda" or "mps"
 
-[checkpoint]
-path = "data/checkpoints"
-mode = "minimize"         # "minimize" or "maximize"
-
 [tuner]
-n_trials = 8
-
-[evaluator]
-n_bootstraps = 1000
-
-[hparams]
-[hparams.hidden_dim]
+n_trials = 4
+checkpoint = "data/checkpoint.pt" # TODO: dynamically append paths
+hyperparameters = "data/hyperparameters.json" # TODO: dynamically append paths
+[tuner.hidden_dim]
 name = "hidden_dim"
 choices = [32, 64, 128]
-[hparams.n_layers]
+[tuner.n_layers]
 name = "n_layers"
 low = 1
 high = 6
-[hparams.lr]
+[tuner.lr]
 name = "lr"
 low = 1e-5
 high = 1e-2
 log = true
-[hparams.weight_decay]
+[tuner.weight_decay]
 name = "weight_decay"
 low = 1e-10
 high = 1e-3
 log = true
-[hparams.momentum]
+[tuner.momentum]
 name = "momentum"
 low = 0.9
 high = 0.99
+
+[evaluator]
+n_bootstraps = 1000
+
+
