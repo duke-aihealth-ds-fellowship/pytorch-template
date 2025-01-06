@@ -1,9 +1,11 @@
-from collections.abc import Callable
-
 import polars as pl
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Metric
+from torchmetrics.classification import (
+    BinaryAccuracy,
+    BinaryAUROC,
+    BinaryAveragePrecision,
+)
 from torchmetrics.wrappers import BootStrapper
 
 from template.config import Config
@@ -40,14 +42,13 @@ def bootstrap_metric(
 def evaluate_model(
     cfg: Config,
     dataloader: DataLoader,
-    metrics: dict[str, Callable],
     n_bootstraps: int = 0,
 ) -> dict:
     outputs, labels = get_predictions(cfg=cfg, dataloader=dataloader)
     results = {}
-    for name, metric in metrics.items():
-        if issubclass(type(metric), Metric):
-            labels = labels.long()
+    metrics = [BinaryAUROC(), BinaryAveragePrecision(), BinaryAccuracy()]
+    for metric in metrics:
+        name = metric.__class__.__name__
         if n_bootstraps:
             results[name] = bootstrap_metric(
                 metric,

@@ -1,5 +1,4 @@
 from tomllib import load
-from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
 
 from template.config import Config
 from template.dataset import make_dataloaders, make_splits
@@ -22,16 +21,7 @@ def main():
         trainer = make_trainer(cfg=cfg, dataloaders=dataloaders)
         trainer.train()
     if cfg.evaluate:
-        test_metrics = {"AUROC": BinaryAUROC(), "AP": BinaryAveragePrecision()}
-        metrics = evaluate_model(
-            cfg=cfg, dataloader=dataloaders.test, metrics=test_metrics
-        )
-        auroc = metrics["AUROC"]
-        ap = metrics["AP"]
-        print(f"AUROC: {auroc['mean']:.2f} ± {auroc['std']:.2f}")
-        print(f"AP: {ap['mean']:.2f} ± {ap['std']:.2f}")
-        # The raw bootstrap values (which are often easier to plot with
-        # packages like seaborn) can be accessed via auroc["raw"] or ap["raw"]
+        evaluate_model(cfg=cfg, dataloader=dataloaders.test)
 
 
 if __name__ == "__main__":
