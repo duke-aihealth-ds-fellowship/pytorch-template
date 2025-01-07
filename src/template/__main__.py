@@ -1,3 +1,4 @@
+import torch
 from tomllib import load
 
 from template.config import Config
@@ -22,6 +23,7 @@ def main():
     if cfg.train:
         trainer = make_trainer(cfg=cfg, dataloaders=dataloaders)
         trainer.train()
+        torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
     if cfg.evaluate:
         evaluate_model(cfg=cfg, dataloader=dataloaders.test)
 

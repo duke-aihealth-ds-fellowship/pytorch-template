@@ -25,19 +25,16 @@ class Objective:
         cfg.optimizer.momentum = trial.suggest_float(**cfg.tuner.momentum)
         return cfg
 
-    def save_checkpoint(self, cfg: Config, model: nn.Module):
-        hyperparameters = cfg.model.model_dump()
-        with open(cfg.tuner.hyperparameters, "w") as f:
-            json.dump(hyperparameters, f)
-        torch.save(model.state_dict(), cfg.tuner.checkpoint)
-
     def __call__(self, trial: Trial) -> float:
         cfg = self.sample_hyperparameters(trial=trial)
         trainer = make_trainer(cfg=cfg, dataloaders=self.dataloaders)
         validation_loss = trainer.train()
         if validation_loss < self.best_validation_loss:
             self.best_validation_loss = validation_loss
-            self.save_checkpoint(cfg=cfg, model=trainer.model)
+            hyperparameters = cfg.model.model_dump()
+            with open(cfg.tuner.hyperparameters, "w") as f:
+                json.dump(hyperparameters, f)
+            torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
         return validation_loss
 
 

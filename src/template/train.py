@@ -18,15 +18,12 @@ class Trainer:
         criterion: nn.Module,
         dataloaders: DataLoaders,
         cfg: Config,
-        device: str | torch.device,
     ):
         self.model = model
-        self.model.to(device)
         self.optimizer = optimizer
         self.criterion = criterion
         self.dataloaders = dataloaders
         self.cfg = cfg
-        self.device = device
 
     def train_step(self, inputs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         inputs = inputs.to(self.device)
@@ -50,10 +47,11 @@ class Trainer:
             labels = labels.to(self.device)
             outputs = self.model(inputs)
             loss += self.criterion(outputs, labels)
-        validation_loss = loss / len(self.dataloaders.validation)
-        return validation_loss
+        loss /= len(self.dataloaders.validation)
+        return loss
 
-    def train(self) -> None:
+    def train(self) -> torch.Tensor:
+        self.model.to(self.cfg.trainer.device)
         progress_bar = tqdm(range(self.cfg.trainer.max_epochs), desc="Epoch")
         for epoch in progress_bar:
             self.model.train()
