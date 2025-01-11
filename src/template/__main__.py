@@ -2,7 +2,7 @@ import torch
 from tomllib import load
 
 from template.config import Config
-from template.dataset import make_dataloaders, make_splits
+from template.dataset import make_dataloaders
 from template.evaluate import evaluate_model
 from template.examples import make_fake_sequence_dataset
 from template.train import make_trainer
@@ -15,9 +15,8 @@ def main():
     cfg = Config(**cfg_data)
     cfg.data_dir.mkdir(exist_ok=True, parents=True)
     df = make_fake_sequence_dataset()
+    dataloaders = make_dataloaders(data=df, cfg=cfg)
     cfg.model.output_dim = df["label"].n_unique()
-    splits = make_splits(df, train_size=cfg.train_size, random_state=cfg.random_state)
-    dataloaders = make_dataloaders(splits=splits, cfg=cfg.dataloader)
     if cfg.tune:
         tune_hyperparameters(dataloaders, cfg=cfg)
     if cfg.train:

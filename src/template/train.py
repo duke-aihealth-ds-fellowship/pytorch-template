@@ -5,7 +5,7 @@ from torch.optim.optimizer import Optimizer
 from torch.optim.sgd import SGD
 from tqdm import tqdm
 
-from template.config import Config
+from template.config import Config, TrainerConfig
 from template.dataset import DataLoaders
 from template.model import EmbeddingModel
 
@@ -17,7 +17,7 @@ class Trainer:
         optimizer: Optimizer,
         criterion: nn.Module,
         dataloaders: DataLoaders,
-        cfg: Config,
+        cfg: TrainerConfig,
     ):
         self.model = model
         self.optimizer = optimizer
@@ -26,15 +26,13 @@ class Trainer:
         self.cfg = cfg
 
     def train_step(self, inputs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        inputs = inputs.to(self.device)
-        labels = labels.to(self.device)
+        inputs = inputs.to(self.cfg.device)
+        labels = labels.to(self.cfg.device)
         self.optimizer.zero_grad()
         outputs = self.model(inputs)
         loss: torch.Tensor = self.criterion(outputs, labels)
         loss.backward()
-        clip_grad_norm_(
-            self.model.parameters(), max_norm=self.cfg.trainer.gradient_clip
-        )
+        clip_grad_norm_(self.model.parameters(), max_norm=self.cfg.gradient_clip)
         self.optimizer.step()
         return loss
 
@@ -43,16 +41,16 @@ class Trainer:
         self.model.eval()
         loss = 0
         for inputs, labels in self.dataloaders.validation:
-            inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
+            inputs = inputs.to(self.cfg.device)
+            labels = labels.to(self.cfg.device)
             outputs = self.model(inputs)
             loss += self.criterion(outputs, labels)
         loss /= len(self.dataloaders.validation)
         return loss
 
     def train(self) -> torch.Tensor:
-        self.model.to(self.cfg.trainer.device)
-        progress_bar = tqdm(range(self.cfg.trainer.max_epochs), desc="Epoch")
+        self.model.to(self.cfg.device)
+        progress_bar = tqdm(range(self.cfg.max_epochs), desc="Epoch")
         for epoch in progress_bar:
             self.model.train()
             train_loss = 0
@@ -60,7 +58,7 @@ class Trainer:
                 loss = self.train_step(inputs, labels)
                 train_loss += loss
             train_loss = train_loss / len(self.dataloaders.train)
-            if epoch % self.cfg.trainer.eval_every_n_epochs == 0:
+            if epoch % self.cfg.eval_every_n_epochs == 0:
                 validation_loss = self.validate()
                 progress_bar.set_postfix_str(
                     f"Train loss: {train_loss.item():.4f}, "
@@ -78,6 +76,5 @@ def make_trainer(cfg: Config, dataloaders: DataLoaders) -> Trainer:
         optimizer=optimizer,
         criterion=criterion,
         dataloaders=dataloaders,
-        cfg=cfg,
-        device=cfg.trainer.device,
+        cfg=cfg.trainer,
     )

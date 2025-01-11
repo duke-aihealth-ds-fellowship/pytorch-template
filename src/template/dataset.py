@@ -8,14 +8,7 @@ from sklearn.model_selection import train_test_split
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 
-from template.config import DataLoaderConfig
-
-
-@dataclass
-class Datasets:
-    train: Dataset
-    validation: Dataset
-    test: Dataset
+from template.config import Config
 
 
 class SequenceDataset(Dataset):
@@ -32,19 +25,11 @@ class SequenceDataset(Dataset):
         return inputs, labels
 
 
-# TODO SequenceDataset is specific to the example dataset, make generic
-def make_splits(data: Iterable, train_size: float, random_state: int) -> Datasets:
-    train, validation_test = train_test_split(
-        data, train_size=train_size, random_state=random_state, shuffle=True
-    )
-    validation, test = train_test_split(
-        validation_test, train_size=0.5, random_state=random_state, shuffle=False
-    )
-    return Datasets(
-        train=SequenceDataset(train),
-        validation=SequenceDataset(validation),
-        test=SequenceDataset(test),
-    )
+@dataclass
+class DataLoaders:
+    train: DataLoader
+    validation: DataLoader
+    test: DataLoader
 
 
 def collate_batch(batch: list[tuple]) -> tuple[torch.Tensor, torch.Tensor]:
@@ -54,17 +39,21 @@ def collate_batch(batch: list[tuple]) -> tuple[torch.Tensor, torch.Tensor]:
     return inputs, labels
 
 
-@dataclass
-class DataLoaders:
-    train: DataLoader
-    validation: DataLoader
-    test: DataLoader
-
-
-def make_dataloaders(splits: Datasets, cfg: DataLoaderConfig):
-    dataloader = partial(DataLoader, collate_fn=collate_batch, **cfg.model_dump())
+def make_dataloaders(data: Iterable, cfg: Config) -> DataLoaders:
+    train, validation_test = train_test_split(
+        data, train_size=cfg.train_size, random_state=cfg.random_state, shuffle=True
+    )
+    validation, test = train_test_split(
+        validation_test, train_size=0.5, random_state=cfg.random_state, shuffle=False
+    )
+    dataloader = partial(
+        DataLoader, collate_fn=collate_batch, **cfg.dataloader.model_dump()
+    )
+    train_dataset = SequenceDataset(train)
+    validation_dataset = SequenceDataset(validation)
+    test_dataset = SequenceDataset(test)
     return DataLoaders(
-        train=dataloader(dataset=splits.train, shuffle=True),
-        validation=dataloader(dataset=splits.validation, shuffle=False),
-        test=dataloader(dataset=splits.test, shuffle=False),
+        train=dataloader(dataset=train_dataset, shuffle=True),
+        validation=dataloader(dataset=validation_dataset, shuffle=False),
+        test=dataloader(dataset=test_dataset, shuffle=False),
     )

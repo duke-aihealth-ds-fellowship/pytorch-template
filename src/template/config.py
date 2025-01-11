@@ -1,6 +1,14 @@
 from pathlib import Path
 
+import torch
 from pydantic import BaseModel
+
+
+class DataLoaderConfig(BaseModel):
+    batch_size: int
+    num_workers: int
+    pin_memory: bool
+    persistent_workers: bool
 
 
 class ModelConfig(BaseModel):
@@ -18,29 +26,22 @@ class OptimizerConfig(BaseModel):
     weight_decay: float
 
 
-class DataLoaderConfig(BaseModel):
-    batch_size: int
-    num_workers: int
-    pin_memory: bool
-
-
 class TrainerConfig(BaseModel):
     max_epochs: int
     gradient_clip: float
     eval_every_n_epochs: int
-    early_stopping_patience: int
-    device: str
+    device: str | None = None  # set at initialization
 
 
 class TunerConfig(BaseModel):
     n_trials: int
+    prune: bool
     checkpoint: Path
     hyperparameters: Path
     hidden_dim: dict
     n_layers: dict
     lr: dict
     weight_decay: dict
-    momentum: dict
 
 
 class EvaluatorConfig(BaseModel):
@@ -61,3 +62,11 @@ class Config(BaseModel):
     trainer: TrainerConfig
     tuner: TunerConfig
     evaluator: EvaluatorConfig
+
+    def model_post_init(self, __context) -> None:
+        if torch.cuda.is_available():
+            self.trainer.device = "cuda"
+        elif torch.mps.is_available():
+            self.trainer.device = "mps"
+        else:
+            self.trainer.device = "cpu"

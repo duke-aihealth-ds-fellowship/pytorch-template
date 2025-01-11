@@ -1,9 +1,11 @@
 import json
 
+import optuna
 import torch
 import torch.nn as nn
-from optuna import Trial, create_study
-from optuna.samplers import TPESampler
+from optuna import Trial
+from optuna.pruners import HyperbandPruner
+from optuna.samplers import QMCSampler, TPESampler
 
 from template.config import Config
 from template.dataset import DataLoaders
@@ -16,13 +18,12 @@ class Objective:
         self.cfg = cfg
         self.best_validation_loss = float("inf")
 
-    def sample_hyperparameters(self, trial: Trial):
+    def sample_hyperparameters(self, trial: optuna.Trial):
         cfg = self.cfg.model_copy(deep=True)
-        cfg.model.hidden_dim = trial.suggest_categorical(**cfg.tuner.hidden_dim)
+        cfg.model.hidden_dim = 2 ** trial.suggest_int(**cfg.tuner.hidden_dim)
         cfg.model.n_layers = trial.suggest_int(**cfg.tuner.n_layers)
         cfg.optimizer.lr = trial.suggest_float(**cfg.tuner.lr)
         cfg.optimizer.weight_decay = trial.suggest_float(**cfg.tuner.weight_decay)
-        cfg.optimizer.momentum = trial.suggest_float(**cfg.tuner.momentum)
         return cfg
 
     def __call__(self, trial: Trial) -> float:
@@ -38,11 +39,35 @@ class Objective:
         return validation_loss
 
 
+def make_study(cfg: Config):
+    sampler = QMCSampler(seed=cfg.random_state)
+    if cfg.tuner.prune:
+        pruner = HyperbandPruner(
+            min_resource=cfg.trainer.max_epochs // 4,
+            max_resource=cfg.trainer.max_epochs,
+        )
+    else:
+        pruner = None
+    storage = optuna.storages.RDBStorage(
+        url="sqlite:///:memory:",
+        engine_kwargs={"pool_size": 20, "connect_args": {"timeout": 10}},
+    )
+    return optuna.create_study(
+        storage=storage,
+        sampler=sampler,
+        pruner=pruner,
+        direction="minimize",
+        study_name="tune",
+    )
+
+
 def tune_hyperparameters(dataloaders: DataLoaders, cfg: Config):
-    sampler = TPESampler(seed=cfg.random_state)
-    study = create_study(sampler=sampler, direction="minimize", study_name="tune")
-    objective = Objective(dataloaders=dataloaders, cfg=cfg)
-    study.optimize(func=objective, n_trials=cfg.tuner.n_trials)
+    objective = Objective(cfg=cfg, dataloaders=dataloaders)
+    half_trials = cfg.tuner.n_trials // 2
+    study = make_study(cfg=cfg)
+    study.optimize(func=objective, n_trials=half_trials)
+    study.sampler = TPESampler(multivariate=True, seed=cfg.random_state)
+    study.optimize(func=objective, n_trials=half_trials)
     if cfg.verbose:
         print("Best model hyperparameters:")
         print(json.dumps(study.best_params, indent=4))
