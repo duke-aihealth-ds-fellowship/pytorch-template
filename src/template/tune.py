@@ -7,8 +7,9 @@ from optuna import Trial
 from optuna.pruners import HyperbandPruner
 from optuna.samplers import QMCSampler, TPESampler
 
-from template.config import Config
+from template.config import Config, TunerConfig
 from template.dataset import DataLoaders
+from template.model import set_hyperparameters
 from template.train import make_trainer
 
 
@@ -19,28 +20,28 @@ class Objective:
         self.best_validation_loss = float("inf")
 
     def sample_hyperparameters(self, trial: optuna.Trial):
-        cfg = self.cfg.model_copy(deep=True)
-        cfg.model.hidden_dim = 2 ** trial.suggest_int(**cfg.tuner.hidden_dim)
-        cfg.model.n_layers = trial.suggest_int(**cfg.tuner.n_layers)
-        cfg.optimizer.lr = trial.suggest_float(**cfg.tuner.lr)
-        cfg.optimizer.weight_decay = trial.suggest_float(**cfg.tuner.weight_decay)
-        return cfg
+        cfg: TunerConfig = self.cfg.tuner.model_copy(deep=True)
+        return {
+            "hidden_dim": trial.suggest_int(**cfg.hidden_dim),
+            "n_layers": trial.suggest_int(**cfg.n_layers),
+            "lr": trial.suggest_float(**cfg.lr),
+            "weight_decay": trial.suggest_float(**cfg.weight_decay),
+        }
 
     def __call__(self, trial: Trial) -> float:
-        cfg = self.sample_hyperparameters(trial=trial)
+        hyperparams = self.sample_hyperparameters(trial=trial)
+        cfg = set_hyperparameters(cfg=self.cfg, **hyperparams)
         trainer = make_trainer(cfg=cfg, dataloaders=self.dataloaders)
-        validation_loss = trainer.train()
-        if validation_loss < self.best_validation_loss:
-            self.best_validation_loss = validation_loss
-            hyperparameters = cfg.model.model_dump()
-            with open(cfg.tuner.hyperparameters, "w") as f:
-                json.dump(hyperparameters, f)
+        trainer.train(validate=True)
+        if trainer.validation_loss < self.best_validation_loss:
+            self.best_validation_loss = trainer.validation_loss
+            with open(self.cfg.tuner.hyperparameters, "w") as f:
+                json.dump(hyperparams, f)
             torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
-        return validation_loss
+        return trainer.validation_loss
 
 
-def make_study(cfg: Config):
-    sampler = QMCSampler(seed=cfg.random_state)
+def make_study(cfg: Config, sampler: optuna.samplers.BaseSampler) -> optuna.study.Study:
     if cfg.tuner.prune:
         pruner = HyperbandPruner(
             min_resource=cfg.trainer.max_epochs // 4,
@@ -64,7 +65,8 @@ def make_study(cfg: Config):
 def tune_hyperparameters(dataloaders: DataLoaders, cfg: Config):
     objective = Objective(cfg=cfg, dataloaders=dataloaders)
     half_trials = cfg.tuner.n_trials // 2
-    study = make_study(cfg=cfg)
+    sampler = QMCSampler(seed=cfg.random_state)
+    study = make_study(cfg=cfg, sampler=sampler)
     study.optimize(func=objective, n_trials=half_trials)
     study.sampler = TPESampler(multivariate=True, seed=cfg.random_state)
     study.optimize(func=objective, n_trials=half_trials)
@@ -78,8 +80,9 @@ def tune_hyperparameters(dataloaders: DataLoaders, cfg: Config):
 def load_best_checkpoint(cfg: Config, model_class: type[nn.Module]) -> nn.Module:
     model_weights = torch.load(cfg.tuner.checkpoint, weights_only=True)
     with open(cfg.tuner.hyperparameters, "r") as f:
-        hyperparameters = json.load(f)
-    model: nn.Module = model_class(**hyperparameters)
+        hyperparams = json.load(f)
+    cfg = set_hyperparameters(cfg=cfg, **hyperparams)
+    model: nn.Module = model_class(**cfg.model.model_dump())
     model.load_state_dict(model_weights)
     model.to(cfg.trainer.device)
     return model

@@ -1,3 +1,5 @@
+import json
+
 import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
@@ -7,7 +9,7 @@ from tqdm import tqdm
 
 from template.config import Config, TrainerConfig
 from template.dataset import DataLoaders
-from template.model import EmbeddingModel
+from template.model import EmbeddingModel, set_hyperparameters
 
 
 class Trainer:
@@ -23,7 +25,10 @@ class Trainer:
         self.optimizer = optimizer
         self.criterion = criterion
         self.dataloaders = dataloaders
+        self.progress_bar = tqdm(range(cfg.max_epochs), desc="Epoch")
         self.cfg = cfg
+        self.train_loss = float("inf")
+        self.validation_loss = float("inf")
 
     def train_step(self, inputs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         inputs = inputs.to(self.cfg.device)
@@ -37,7 +42,7 @@ class Trainer:
         return loss
 
     @torch.no_grad()
-    def validate(self) -> float:
+    def validate(self) -> None:
         self.model.eval()
         loss = 0
         for inputs, labels in self.dataloaders.validation:
@@ -46,25 +51,23 @@ class Trainer:
             outputs = self.model(inputs)
             loss += self.criterion(outputs, labels)
         loss /= len(self.dataloaders.validation)
-        return loss
+        self.validation_loss = loss
 
-    def train(self) -> torch.Tensor:
+    def train(self, validate: bool = True) -> None:
         self.model.to(self.cfg.device)
-        progress_bar = tqdm(range(self.cfg.max_epochs), desc="Epoch")
-        for epoch in progress_bar:
+        for epoch in self.progress_bar:
             self.model.train()
-            train_loss = 0
+            loss = 0
             for inputs, labels in self.dataloaders.train:
-                loss = self.train_step(inputs, labels)
-                train_loss += loss
-            train_loss = train_loss / len(self.dataloaders.train)
+                loss += self.train_step(inputs, labels)
+            loss /= len(self.dataloaders.train)
+            self.train_loss = loss
             if epoch % self.cfg.eval_every_n_epochs == 0:
-                validation_loss = self.validate()
-                progress_bar.set_postfix_str(
-                    f"Train loss: {train_loss.item():.4f}, "
-                    "Validation loss: {validation_loss:.4f}"
-                )
-        return validation_loss
+                postfix = f"Train loss: {loss.item():.4f}"
+                if validate:
+                    self.validate()
+                    postfix += f", Val loss: {self.validation_loss:.4f}"
+                self.progress_bar.set_postfix_str(postfix)
 
 
 def make_trainer(cfg: Config, dataloaders: DataLoaders) -> Trainer:
@@ -78,3 +81,20 @@ def make_trainer(cfg: Config, dataloaders: DataLoaders) -> Trainer:
         dataloaders=dataloaders,
         cfg=cfg.trainer,
     )
+
+
+def train_model(
+    dataloaders: DataLoaders,
+    cfg: Config,
+    use_best: bool = False,
+    validate: bool = True,
+    combine_train_val: bool = False,
+):
+    if combine_train_val:
+        dataloaders.train = dataloaders.train_validation
+    if use_best:
+        hyperparameters = json.load(open(cfg.tuner.hyperparameters, "r"))
+        cfg = set_hyperparameters(cfg=cfg, **hyperparameters)
+    trainer = make_trainer(cfg=cfg, dataloaders=dataloaders)
+    trainer.train(validate=validate)
+    torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)

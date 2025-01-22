@@ -1,10 +1,11 @@
 random_state = 42
 verbose = true
-train = false      # train using default hyperparameters
+train = true      # train using default hyperparameters
 tune = true      # tune hyperparameters
 evaluate = true   # Generate performance metrics from the test set
 train_size = 0.8
 data_dir = "data/"
+combine_train_val = true
 
 [dataloader]
 batch_size = 32

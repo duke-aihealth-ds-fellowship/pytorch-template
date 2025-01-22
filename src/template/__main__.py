@@ -1,11 +1,10 @@
-import torch
 from tomllib import load
 
 from template.config import Config
 from template.dataset import make_dataloaders
 from template.evaluate import evaluate_model
 from template.examples import make_fake_sequence_dataset
-from template.train import make_trainer
+from template.train import train_model
 from template.tune import tune_hyperparameters
 
 
@@ -20,9 +19,13 @@ def main():
     if cfg.tune:
         tune_hyperparameters(dataloaders, cfg=cfg)
     if cfg.train:
-        trainer = make_trainer(cfg=cfg, dataloaders=dataloaders)
-        trainer.train()
-        torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
+        train_model(
+            cfg=cfg,
+            dataloaders=dataloaders,
+            use_best=True,
+            validate=False,
+            combine_train_val=True,
+        )
     if cfg.evaluate:
         evaluate_model(cfg=cfg, dataloader=dataloaders.test)
 

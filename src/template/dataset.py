@@ -6,7 +6,7 @@ import polars as pl
 import torch
 from sklearn.model_selection import train_test_split
 from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import ConcatDataset, DataLoader, Dataset
 
 from template.config import Config
 
@@ -30,6 +30,7 @@ class DataLoaders:
     train: DataLoader
     validation: DataLoader
     test: DataLoader
+    train_validation: DataLoader
 
 
 def collate_batch(batch: list[tuple]) -> tuple[torch.Tensor, torch.Tensor]:
@@ -52,8 +53,10 @@ def make_dataloaders(data: Iterable, cfg: Config) -> DataLoaders:
     train_dataset = SequenceDataset(train)
     validation_dataset = SequenceDataset(validation)
     test_dataset = SequenceDataset(test)
+    train_validation_dataset = ConcatDataset([train_dataset, validation_dataset])
     return DataLoaders(
         train=dataloader(dataset=train_dataset, shuffle=True),
         validation=dataloader(dataset=validation_dataset, shuffle=False),
         test=dataloader(dataset=test_dataset, shuffle=False),
+        train_validation=dataloader(dataset=train_validation_dataset, shuffle=True),
     )

@@ -1,6 +1,18 @@
 import torch
 import torch.nn as nn
 
+from template.config import Config
+
+
+def set_hyperparameters(
+    cfg: Config, hidden_dim: int, n_layers: int, lr: float, weight_decay: float
+) -> Config:
+    cfg.model.hidden_dim = 2**hidden_dim
+    cfg.model.n_layers = n_layers
+    cfg.optimizer.lr = lr
+    cfg.optimizer.weight_decay = weight_decay
+    return cfg
+
 
 class EmbeddingModel(nn.Module):
     def __init__(
