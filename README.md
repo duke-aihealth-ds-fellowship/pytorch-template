@@ -8,13 +8,13 @@ This project is a template to jump-start PyTorch projects. It is designed to be 
 
 ## Installation
 
-Fork or clone the repo from the web or command line:
+Fork or clone the repo from the web or command line (you will need the GitHub CLI installed to use `gh`):
 
 ```bash
 gh repo fork https://github.com/duke-aihealth-ds-fellowship/pytorch-template.git --clone
 ```
 
-You will need to have the GitHub CLI installed to use `gh`. After forking the repo, give the package a new name (currently set to "template" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/template`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
+ After forking the repo, give the package a new name (currently set to "template" in this repo) by modifying the `name` variable in `pyproject.toml` and in the package directory name `src/template`. For example, if you wanted to changed the name to `mypackage`, the package directory would become `src/mypackage`. Next, install the package with:
 
 ```bash
 pip install -e path/to/repo
@@ -45,14 +45,14 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 - Configuration and validation with Pydantic
 - Custom PyTorch dataset
 - Dataloaders for train, validation, and test splits
-- A training loop
+- A trainer with training and evaluation loop
 - Hyperparameter tuning with Optuna
-- Model checkpointing
 - Model evaluation with TorchMetrics
+- Feature importance with Captum
 
 ## Toy dataset examples
 
-- A custom PyTorch dataset for sequence data e.g. word embeddings
+- AG news text classification dataset
 - More to come...
 
 ## Design philosophy
@@ -67,5 +67,5 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 - Logging
 - Distributed training
 - Learning rate schedulers
+- Tokenization
 - More toy datasets modalities, e.g., images, tabular, etc.
-- Feature importance
