@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class DatasetConfig(BaseModel):
     name: str
+    train_size: float
 
 
 class DataLoaderConfig(BaseModel):
@@ -66,12 +67,12 @@ class Config(BaseModel):
     tune: bool
     evaluate: bool
     feature_importance: bool
-    train_size: float
     data_dir: Path
     combine_train_val: bool
+    dataset: DatasetConfig
+    dataloader: DataLoaderConfig
     model: ModelConfig
     optimizer: OptimizerConfig
-    dataloader: DataLoaderConfig
     trainer: TrainerConfig
     tuner: TunerConfig
     evaluator: EvaluatorConfig

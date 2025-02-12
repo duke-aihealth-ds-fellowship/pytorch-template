@@ -1,10 +1,10 @@
 import torch
+from datasets import concatenate_datasets, load_dataset
 from tomllib import load
 
 from template.config import Config, get_device
 from template.dataset import make_dataloaders
 from template.evaluate import evaluate_model
-from template.examples import make_fake_sequence_dataset
 from template.importance import feature_importance
 from template.train import train_model
 from template.tune import tune_hyperparameters
@@ -20,9 +20,10 @@ def main():
     torch.manual_seed(cfg.random_state)
     torch.set_float32_matmul_precision("high")
 
-    df = make_fake_sequence_dataset()
-    cfg.model.output_dim = df["label"].n_unique()
-    loaders = make_dataloaders(data=df, cfg=cfg)
+    dataset = load_dataset(cfg.dataset.name)
+    dataset = concatenate_datasets([dataset["train"], dataset["test"]])
+    cfg.model.output_dim = len(dataset.unique("label"))
+    loaders = make_dataloaders(dataset=dataset, cfg=cfg)
 
     if cfg.tune:
         tune_hyperparameters(loaders, cfg=cfg)

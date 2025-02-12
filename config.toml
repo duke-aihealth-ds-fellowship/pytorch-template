@@ -4,12 +4,12 @@ tune = true      # tune hyperparameters
 train = true      # train using the best hyperparameters
 evaluate = true   # Generate performance metrics from the test set
 feature_importance = true # Compute feature importance
-train_size = 0.8
+combine_train_val = true # Combine train and validation sets for training the final model
 data_dir = "data/"
-combine_train_val = true
 
 [dataset]
 name = "ag_news"
+train_size = 0.8
 
 [dataloader]
 batch_size = 32
