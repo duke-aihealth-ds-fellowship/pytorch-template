@@ -3,6 +3,7 @@ verbose = true
 tune = true      # tune hyperparameters
 train = true      # train using the best hyperparameters
 evaluate = true   # Generate performance metrics from the test set
+feature_importance = true # Compute feature importance
 train_size = 0.8
 data_dir = "data/"
 combine_train_val = true

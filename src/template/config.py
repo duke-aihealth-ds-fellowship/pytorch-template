@@ -65,7 +65,7 @@ class Config(BaseModel):
     train: bool
     tune: bool
     evaluate: bool
-    importance: bool
+    feature_importance: bool
     train_size: float
     data_dir: Path
     combine_train_val: bool
@@ -75,6 +75,7 @@ class Config(BaseModel):
     trainer: TrainerConfig
     tuner: TunerConfig
     evaluator: EvaluatorConfig
+    importance: ImportanceConfig
 
 
 def get_device() -> str:
