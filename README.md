@@ -33,7 +33,7 @@ from mypackage.model import MyModel
 Once installed, you can run the package with:
 
 ```bash
-python3 -m mypackage
+python -m mypackage
 ```
 
 ## Structure
@@ -42,11 +42,11 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 
 ## Implemented components
 
-- Configuration and validation with Pydantic
+- Configuration validation with Pydantic
 - Custom PyTorch dataset
 - Dataloaders for train, validation, and test splits
 - A trainer with training and evaluation loop
-- Hyperparameter tuning with Optuna
+- Hyperparameter tuning (and pruning) with Optuna
 - Model evaluation with TorchMetrics
 - Feature importance with Captum
 
