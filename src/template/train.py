@@ -82,7 +82,9 @@ class Trainer:
 
 
 def make_trainer(cfg: Config) -> Trainer:
-    model = EmbeddingModel(**cfg.model.model_dump())
+    model = EmbeddingModel(**cfg.model.model_dump(exclude={"compile"}))
+    if cfg.model.compile:
+        model = torch.compile(model)
     optimizer = SGD(model.parameters(), **cfg.optimizer.model_dump())
     criterion = nn.CrossEntropyLoss()
     return Trainer(

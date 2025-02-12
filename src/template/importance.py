@@ -9,22 +9,20 @@ from captum.attr import (
     configure_interpretable_embedding_layer,
     remove_interpretable_embedding_layer,
 )
-from torch.utils.data import Dataset
 
-from template.dataset import collate_fn
+from template.config import Config
+from template.dataset import DataLoaders, collate_fn
+from template.model import EmbeddingModel
+from template.tune import load_best_checkpoint
 
 
 def make_attributions(
-    input_dataset: Dataset,
-    baseline_dataset: Dataset,
+    inputs: torch.Tensor,
+    baselines: torch.Tensor,
     model: nn.Module,
     output_idx: int,
     device: str,
 ):
-    inputs = [instance for instance in input_dataset]
-    baselines = [instance for instance in baseline_dataset]
-    inputs, _ = collate_fn(inputs)
-    baselines, _ = collate_fn(baselines)
     inputs = inputs.to(device)
     baselines = baselines.to(device)
     model.to(device)
@@ -81,9 +79,9 @@ def get_top_k_tokens(df: pl.DataFrame, k: int):
     )["token"].reverse()
 
 
-def plot_attributions(df: pl.DataFrame):
+def plot_attributions(df: pl.DataFrame, cfg: Config):
     sns.set_theme(style="darkgrid", font_scale=1.5)
-    top_k_tokens = get_top_k_tokens(df, k=20)
+    top_k_tokens = get_top_k_tokens(df, top_k=cfg.importance.top_k)
     ax = sns.stripplot(
         data=df,
         x="attribution",
@@ -96,10 +94,41 @@ def plot_attributions(df: pl.DataFrame):
         jitter=0.2,
         alpha=0.5,
     )
+    ax.set_xlabel("SHAP value")
+    ax.set_ylabel("token")
     plt.grid(axis="y")
     ax.axes.axvline(0, color="black", linestyle="--")
     norm = plt.Normalize(df["count"].min(), df["count"].max())
     sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=ax)
-    cbar.set_label("count")
+    cbar.set_label("Count")
+    plt.savefig(cfg.data_dir / "attributions.pdf", format="pdf")
+
+
+def make_vocabulary(df: pl.DataFrame):
+    unique_words = df["text"].str.split(" ").explode().unique(maintain_order=True)
+    vocabulary = {word: index + 1 for index, word in enumerate(unique_words)}
+    vocabulary["<PAD>"] = 0
+    return vocabulary
+
+
+def feature_importance(cfg: Config, loaders: DataLoaders, output_idx: int):
+    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
+    inputs = [instance for instance in loaders.test.dataset]
+    baselines = [instance for instance in loaders.validation.dataset]
+    inputs, _ = collate_fn(inputs)
+    baselines, _ = collate_fn(baselines)
+    attributions = make_attributions(
+        input_dataset=loaders.test,
+        baseline_dataset=loaders.validation,
+        model=model,
+        output_idx=output_idx,
+        device=cfg.trainer.device,
+    )
+    vocabulary = make_vocabulary(loaders.train.dataset.df)
+    df = format_attributions(
+        attributions=attributions, indices=inputs, vocabulary=vocabulary
+    )
+    df = sum_attributions(df)
+    plot_attributions(df)

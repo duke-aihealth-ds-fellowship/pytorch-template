@@ -7,6 +7,9 @@ train_size = 0.8
 data_dir = "data/"
 combine_train_val = true
 
+[dataset]
+name = "ag_news"
+
 [dataloader]
 batch_size = 32
 num_workers = 0   # > 1 for multiprocessing
@@ -14,6 +17,7 @@ pin_memory = true
 persistent_workers = false
 
 [model]
+compile = true
 vocab_size = 100
 embedding_dim = 256
 hidden_dim = 64
@@ -58,5 +62,9 @@ log = true
 [evaluator]
 n_bootstraps = 1000
 aggregate = true
+
+[importance]
+top_k = 20
+plot_path = "importance.pdf"
 
 

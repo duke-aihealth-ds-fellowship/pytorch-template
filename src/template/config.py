@@ -4,6 +4,10 @@ import torch
 from pydantic import BaseModel
 
 
+class DatasetConfig(BaseModel):
+    name: str
+
+
 class DataLoaderConfig(BaseModel):
     batch_size: int
     num_workers: int
@@ -12,6 +16,7 @@ class DataLoaderConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
+    compile: bool
     vocab_size: int
     embedding_dim: int
     hidden_dim: int
@@ -47,6 +52,11 @@ class TunerConfig(BaseModel):
 class EvaluatorConfig(BaseModel):
     n_bootstraps: int
     aggregate: bool
+
+
+class ImportanceConfig(BaseModel):
+    top_k: int
+    plot_path: Path
 
 
 class Config(BaseModel):

@@ -5,6 +5,7 @@ from template.config import Config, get_device
 from template.dataset import make_dataloaders
 from template.evaluate import evaluate_model
 from template.examples import make_fake_sequence_dataset
+from template.importance import feature_importance
 from template.train import train_model
 from template.tune import tune_hyperparameters
 
@@ -31,7 +32,7 @@ def main():
         results = evaluate_model(cfg=cfg, loader=loaders.test)
         print(results)
     if cfg.importance:
-        pass  # TODO
+        feature_importance(cfg=cfg, loaders=loaders)
 
 
 if __name__ == "__main__":

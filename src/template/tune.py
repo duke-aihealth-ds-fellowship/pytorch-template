@@ -79,7 +79,7 @@ def load_best_checkpoint(cfg: Config, model_class: type[nn.Module]) -> nn.Module
     with open(cfg.tuner.hyperparameters, "r") as file:
         hyperparams = json.load(file)
     cfg = set_hyperparameters(cfg=cfg, **hyperparams)
-    model: nn.Module = model_class(**cfg.model.model_dump())
+    model: nn.Module = model_class(**cfg.model.model_dump(exclude={"compile"}))
     model.load(model_weights)
     model.to(cfg.trainer.device)
     return model
