@@ -1,6 +1,8 @@
 import polars as pl
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchmetrics import MetricCollection
 from torchmetrics.classification import (
     MulticlassAccuracy,
     MulticlassAUROC,
@@ -9,55 +11,32 @@ from torchmetrics.classification import (
 from torchmetrics.wrappers import BootStrapper
 
 from template.config import Config
-from template.model import EmbeddingModel
-from template.tune import load_best_checkpoint
 
 
-def get_predictions(cfg: Config, dataloader: DataLoader):
-    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
+@torch.no_grad()
+def evaluate_model(
+    cfg: Config, model: nn.Module, loader: DataLoader, aggregate=False
+) -> dict:
     model.eval()
-    output_batches = []
-    label_batches = []
-    for inputs, labels in dataloader:
+    metrics = MetricCollection(
+        [MulticlassAUROC, MulticlassAveragePrecision, MulticlassAccuracy]
+    )
+    if cfg.evaluator.n_bootstraps:
+        metrics = BootStrapper(
+            metrics,
+            num_bootstraps=cfg.evaluator.n_bootstraps,
+            mean=aggregate,
+            std=aggregate,
+            raw=not aggregate,
+        )
+    metrics = [metric(num_classes=cfg.model.output_dim) for metric in metrics]
+    for inputs, labels in loader:
         inputs = inputs.to(cfg.trainer.device)
         labels = labels.to(cfg.trainer.device)
-        with torch.no_grad():
-            outputs = model(inputs)
-        output_batches.append(outputs)
-        label_batches.append(labels)
-    return torch.cat(output_batches).cpu(), torch.cat(label_batches).cpu()
+        outputs = model(inputs)
 
-
-def bootstrap_metric(
-    metric, outputs: torch.Tensor, labels: torch.Tensor, n_bootstraps: int
-):
-    bootstrap = BootStrapper(
-        metric, num_bootstraps=n_bootstraps, mean=True, std=True, raw=True
-    )
-    bootstrap.update(outputs, labels)
-    return bootstrap.compute()
-
-
-def evaluate_model(
-    cfg: Config,
-    dataloader: DataLoader,
-    n_bootstraps: int = 0,
-) -> dict:
-    outputs, labels = get_predictions(cfg=cfg, dataloader=dataloader)
-    results = {}
-    metrics = [MulticlassAUROC, MulticlassAveragePrecision, MulticlassAccuracy]
-    metrics = [metric(num_classes=cfg.model.output_dim) for metric in metrics]
-    for metric in metrics:
-        name = metric.__class__.__name__
-        if n_bootstraps:
-            results[name] = bootstrap_metric(
-                metric,
-                outputs,
-                labels,
-                n_bootstraps=cfg.evaluator.n_bootstraps,
-            )
-        else:
-            results[name] = metric(outputs, labels)
+        metrics.update(outputs, labels)
+    results = metrics.compute()
     return results
 
 

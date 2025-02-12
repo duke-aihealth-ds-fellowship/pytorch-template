@@ -68,3 +68,4 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 - Distributed training
 - Learning rate schedulers
 - More toy datasets modalities, e.g., images, tabular, etc.
+- Feature importance

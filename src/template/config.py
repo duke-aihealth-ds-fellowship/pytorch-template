@@ -48,14 +48,25 @@ class EvaluatorConfig(BaseModel):
     n_bootstraps: int
 
 
+def get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
+
+
 class Config(BaseModel):
     random_state: int
     verbose: bool
     train: bool
     tune: bool
     evaluate: bool
+    importance: bool
     train_size: float
     data_dir: Path
+    combine_train_val: bool
     model: ModelConfig
     optimizer: OptimizerConfig
     dataloader: DataLoaderConfig
@@ -64,9 +75,4 @@ class Config(BaseModel):
     evaluator: EvaluatorConfig
 
     def model_post_init(self, __context) -> None:
-        if torch.cuda.is_available():
-            self.trainer.device = "cuda"
-        elif torch.mps.is_available():
-            self.trainer.device = "mps"
-        else:
-            self.trainer.device = "cpu"
+        self.trainer.device = get_device()
