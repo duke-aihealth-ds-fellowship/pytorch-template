@@ -49,15 +49,6 @@ class EvaluatorConfig(BaseModel):
     aggregate: bool
 
 
-def get_device() -> str:
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.mps.is_available():
-        return "mps"
-    else:
-        return "cpu"
-
-
 class Config(BaseModel):
     random_state: int
     verbose: bool
@@ -75,5 +66,11 @@ class Config(BaseModel):
     tuner: TunerConfig
     evaluator: EvaluatorConfig
 
-    def model_post_init(self, __context) -> None:
-        self.trainer.device = get_device()
+
+def get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"

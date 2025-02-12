@@ -1,7 +1,7 @@
 import torch
 from tomllib import load
 
-from template.config import Config
+from template.config import Config, get_device
 from template.dataset import make_dataloaders
 from template.evaluate import evaluate_model
 from template.examples import make_fake_sequence_dataset
@@ -13,14 +13,16 @@ def main():
     with open("config.toml", "rb") as f:
         cfg_data = load(f)
     cfg = Config(**cfg_data)
+    cfg.trainer.device = get_device()
+    cfg.data_dir.mkdir(exist_ok=True, parents=True)
+
     torch.manual_seed(cfg.random_state)
     torch.set_float32_matmul_precision("high")
 
-    cfg.data_dir.mkdir(exist_ok=True, parents=True)
     df = make_fake_sequence_dataset()
+    cfg.model.output_dim = df["label"].n_unique()
     loaders = make_dataloaders(data=df, cfg=cfg)
 
-    cfg.model.output_dim = df["label"].n_unique()
     if cfg.tune:
         tune_hyperparameters(loaders, cfg=cfg)
     if cfg.train:
