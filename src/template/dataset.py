@@ -33,7 +33,7 @@ class DataLoaders:
     train_validation: DataLoader
 
 
-def collate_batch(batch: list[tuple]) -> tuple[torch.Tensor, torch.Tensor]:
+def collate_fn(batch: list[tuple]) -> tuple[torch.Tensor, torch.Tensor]:
     inputs, labels = zip(*batch)
     inputs = pad_sequence(inputs, batch_first=True)
     labels = torch.stack(labels)
@@ -48,7 +48,7 @@ def make_dataloaders(data: Iterable, cfg: Config) -> DataLoaders:
         validation_test, train_size=0.5, random_state=cfg.random_state, shuffle=False
     )
     dataloader = partial(
-        DataLoader, collate_fn=collate_batch, **cfg.dataloader.model_dump()
+        DataLoader, collate_fn=collate_fn, **cfg.dataloader.model_dump()
     )
     train_dataset = SequenceDataset(train)
     validation_dataset = SequenceDataset(validation)
