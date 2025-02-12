@@ -46,6 +46,7 @@ class TunerConfig(BaseModel):
 
 class EvaluatorConfig(BaseModel):
     n_bootstraps: int
+    aggregate: bool
 
 
 def get_device() -> str:

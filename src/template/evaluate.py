@@ -1,6 +1,5 @@
 import polars as pl
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection
 from torchmetrics.classification import (
@@ -11,30 +10,30 @@ from torchmetrics.classification import (
 from torchmetrics.wrappers import BootStrapper
 
 from template.config import Config
+from template.model import EmbeddingModel
+from template.tune import load_best_checkpoint
 
 
 @torch.no_grad()
-def evaluate_model(
-    cfg: Config, model: nn.Module, loader: DataLoader, aggregate=False
-) -> dict:
+def evaluate_model(cfg: Config, loader: DataLoader) -> dict:
+    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
     model.eval()
-    metrics = MetricCollection(
-        [MulticlassAUROC, MulticlassAveragePrecision, MulticlassAccuracy]
-    )
+    metrics = [MulticlassAUROC, MulticlassAveragePrecision, MulticlassAccuracy]
+    metrics = [metric(num_classes=cfg.model.output_dim) for metric in metrics]
+    metrics = MetricCollection(metrics)
     if cfg.evaluator.n_bootstraps:
         metrics = BootStrapper(
             metrics,
             num_bootstraps=cfg.evaluator.n_bootstraps,
-            mean=aggregate,
-            std=aggregate,
-            raw=not aggregate,
+            mean=cfg.evaluator.aggregate,
+            std=cfg.evaluator.aggregate,
+            raw=not cfg.evaluator.aggregate,
         )
-    metrics = [metric(num_classes=cfg.model.output_dim) for metric in metrics]
+    metrics = metrics.to(cfg.trainer.device)
     for inputs, labels in loader:
         inputs = inputs.to(cfg.trainer.device)
         labels = labels.to(cfg.trainer.device)
         outputs = model(inputs)
-
         metrics.update(outputs, labels)
     results = metrics.compute()
     return results

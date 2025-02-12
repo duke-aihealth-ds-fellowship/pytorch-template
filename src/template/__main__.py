@@ -5,9 +5,8 @@ from template.config import Config
 from template.dataset import make_dataloaders
 from template.evaluate import evaluate_model
 from template.examples import make_fake_sequence_dataset
-from template.model import EmbeddingModel
 from template.train import train_model
-from template.tune import load_best_checkpoint, tune_hyperparameters
+from template.tune import tune_hyperparameters
 
 
 def main():
@@ -27,10 +26,7 @@ def main():
     if cfg.train:
         train_model(cfg=cfg, loaders=loaders, use_best=True)
     if cfg.evaluate:
-        model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
-        results = evaluate_model(
-            cfg=cfg, model=model, loader=loaders.test, aggregate=True
-        )
+        results = evaluate_model(cfg=cfg, loader=loaders.test)
         print(results)
     if cfg.importance:
         pass  # TODO
