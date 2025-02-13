@@ -43,10 +43,10 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 ## Implemented components
 
 - Configuration validation with Pydantic
-- Custom PyTorch dataset
+- Tokenization
 - Dataloaders for train, validation, and test splits
 - A trainer with training and evaluation loop
-- Hyperparameter tuning (and pruning) with Optuna
+- Hyperparameter tuning with Optuna
 - Model evaluation with TorchMetrics
 - Feature importance with Captum
 

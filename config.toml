@@ -1,15 +1,21 @@
-random_state = 42
-verbose = true
-tune = true      # tune hyperparameters
-train = true      # train using the best hyperparameters
-evaluate = true   # Generate performance metrics from the test set
+seed = 42
+dev_run = false
+regenerate = false # Regenerate the tokenized dataset
+tune = false      # tune hyperparameters
+train = false      # train using the best hyperparameters
+evaluate = false   # Generate performance metrics from the test set
 feature_importance = true # Compute feature importance
-combine_train_val = true # Combine train and validation sets for training the final model
 data_dir = "data/"
 
+[tokenizer]
+path = "tokenizer"
+vocab_size = 20_000
+max_length = 512
+
 [dataset]
-name = "ag_news"
+path = "ag_news"
 train_size = 0.8
+stratify = "label"
 
 [dataloader]
 batch_size = 32
@@ -18,12 +24,9 @@ pin_memory = true
 persistent_workers = false
 
 [model]
-compile = true
-vocab_size = 100
+compile = false
 embedding_dim = 256
 hidden_dim = 64
-n_layers = 3
-padding_idx = 0
 
 [optimizer]
 lr = 1e-5
@@ -31,41 +34,45 @@ momentum = 0.9
 weight_decay = 1e-6
 
 [trainer]
-max_epochs = 10
+max_epochs = 4
 gradient_clip = 1.0
-eval_every_n_epochs = 1
 
 [tuner]
-n_trials = 4
-prune = true
-checkpoint = "data/checkpoint.pt" # TODO: dynamically append paths
-hyperparameters = "data/hyperparameters.json" # TODO: dynamically append paths
+n_trials = 2
+direction = "minimize"
+checkpoint = "checkpoint.pt"
+hparams_path = "hyperparameters.json"
 
-[tuner.hidden_dim]
+[hparams]
+[hparams.max_epochs]
+name = "max_epochs"
+low = 1
+high = 2
+[hparams.hidden_dim]
 name = "hidden_dim"
 low = 6 # 2^6 = 64
 high = 9 # 2^9 = 512
-[tuner.n_layers]
-name = "n_layers"
-low = 1
-high = 6
-[tuner.lr]
+[hparams.lr]
 name = "lr"
 low = 1e-5
 high = 1e-3
 log = true
-[tuner.weight_decay]
+[hparams.weight_decay]
 name = "weight_decay"
 low = 1e-10
 high = 1e-2
 log = true
 
 [evaluator]
-n_bootstraps = 1000
+n_bootstraps = 100
 aggregate = true
 
 [importance]
-top_k = 20
+num_samples = 100
 plot_path = "importance.pdf"
 
-
+[plots]
+path = "plots/"
+style = "darkgrid"
+font_scale = 1.5
+palette = "viridis"

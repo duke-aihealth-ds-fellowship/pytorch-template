@@ -1,12 +1,20 @@
 from pathlib import Path
+from typing import Any
 
 import torch
 from pydantic import BaseModel
 
 
+class TokenizerConfig(BaseModel):
+    path: str
+    vocab_size: int
+    max_length: int
+
+
 class DatasetConfig(BaseModel):
-    name: str
+    path: str
     train_size: float
+    stratify: str
 
 
 class DataLoaderConfig(BaseModel):
@@ -18,11 +26,10 @@ class DataLoaderConfig(BaseModel):
 
 class ModelConfig(BaseModel):
     compile: bool
-    vocab_size: int
     embedding_dim: int
     hidden_dim: int
-    n_layers: int
-    padding_idx: int
+    padding_idx: int = -1  # set at run time
+    vocab_size: int = -1  # set at run time
     output_dim: int = -1  # set at run time
 
 
@@ -35,17 +42,19 @@ class OptimizerConfig(BaseModel):
 class TrainerConfig(BaseModel):
     max_epochs: int
     gradient_clip: float
-    eval_every_n_epochs: int
-    device: str | None = None  # set at initialization
+    device: str = "cpu"  # set at initialization
 
 
 class TunerConfig(BaseModel):
     n_trials: int
-    prune: bool
+    direction: str
     checkpoint: Path
-    hyperparameters: Path
+    hparams_path: Path
+
+
+class HParamsConfig(BaseModel):
+    max_epochs: dict
     hidden_dim: dict
-    n_layers: dict
     lr: dict
     weight_decay: dict
 
@@ -56,27 +65,45 @@ class EvaluatorConfig(BaseModel):
 
 
 class ImportanceConfig(BaseModel):
-    top_k: int
+    num_samples: int
     plot_path: Path
 
 
+class PlotConfig(BaseModel):
+    path: Path
+    style: str
+    font_scale: float
+    palette: str
+
+
 class Config(BaseModel):
-    random_state: int
-    verbose: bool
-    train: bool
+    seed: int
+    dev_run: bool
+    regenerate: bool
     tune: bool
+    train: bool
     evaluate: bool
     feature_importance: bool
     data_dir: Path
-    combine_train_val: bool
+    tokenizer: TokenizerConfig
     dataset: DatasetConfig
     dataloader: DataLoaderConfig
     model: ModelConfig
     optimizer: OptimizerConfig
     trainer: TrainerConfig
     tuner: TunerConfig
+    hparams: HParamsConfig
     evaluator: EvaluatorConfig
     importance: ImportanceConfig
+    plots: PlotConfig
+
+    def model_post_init(self, __context: Any) -> None:
+        self.dataset.path = str(self.data_dir) + self.dataset.path
+        self.tuner.hparams_path = self.data_dir / self.tuner.hparams_path
+        self.tuner.checkpoint = self.data_dir / self.tuner.checkpoint
+        self.importance.plot_path = self.data_dir / self.importance.plot_path
+        self.tokenizer.path = str(self.data_dir) + self.tokenizer.path
+        self.plots.path = self.data_dir / self.plots.path
 
 
 def get_device() -> str:

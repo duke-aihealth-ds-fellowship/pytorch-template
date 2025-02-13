@@ -1,27 +1,34 @@
-from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
+from typing import cast
 
-import torch
-from sklearn.model_selection import train_test_split
-from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import ConcatDataset, DataLoader, Dataset
+from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
+from torch.utils.data import DataLoader
+from transformers import DataCollatorWithPadding
 
 from template.config import Config
 
 
-class SequenceDataset(Dataset):
-    def __init__(self, dataset) -> None:
-        self.dataset = dataset
-
-    def __len__(self) -> int:
-        return len(self.df)
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        instance = self.dataset[idx]
-        inputs = torch.tensor(instance["text"], dtype=torch.int)
-        labels = torch.tensor(instance["label"], dtype=torch.int)
-        return inputs, labels
+def make_splits(cfg: Config) -> DatasetDict:
+    dataset = load_dataset(cfg.dataset.path)
+    dataset_dict = cast(DatasetDict, dataset)
+    dataset = concatenate_datasets([dataset_dict["train"], dataset_dict["test"]])
+    if cfg.dev_run:
+        dataset = dataset.select(range(cfg.dataloader.batch_size * 10))
+    split = partial(
+        Dataset.train_test_split, seed=cfg.seed, stratify_by_column=cfg.dataset.stratify
+    )
+    train_val_test = split(dataset, train_size=cfg.dataset.train_size)
+    val_test = split(train_val_test["test"], test_size=0.5)
+    splits = DatasetDict(
+        {
+            "train": train_val_test["train"],
+            "val": val_test["train"],
+            "test": val_test["test"],
+        }
+    )
+    splits["train_val"] = concatenate_datasets([splits["train"], splits["val"]])
+    return splits
 
 
 @dataclass
@@ -32,35 +39,12 @@ class DataLoaders:
     train_val: DataLoader
 
 
-def collate_fn(batch: list[tuple]) -> tuple[torch.Tensor, torch.Tensor]:
-    inputs, labels = zip(*batch)
-    inputs = pad_sequence(inputs, batch_first=True)
-    labels = torch.stack(labels)
-    return inputs, labels
-
-
-def train_val_test_split(data: Iterable, cfg: Config):
-    split = partial(train_test_split, random_state=cfg.random_state)
-    train, temp = split(data, train_size=cfg.dataset.train_size)
-    val, test = split(temp, train_size=0.5, shuffle=False)
-    return train, val, test
-
-
-def make_splits(dataset, cfg: Config):
-    train, val, test = train_val_test_split(dataset, cfg=cfg)
-    train = SequenceDataset(train)
-    val = SequenceDataset(val)
-    test = SequenceDataset(test)
-    train_val = ConcatDataset([train, val])
-    return train, val, test, train_val
-
-
-def make_dataloaders(data: Iterable, cfg: Config) -> DataLoaders:
-    train, val, test, train_val = make_splits(data, cfg=cfg)
+def make_dataloaders(splits: DatasetDict, tokenizer, cfg: Config) -> DataLoaders:
+    collate_fn = DataCollatorWithPadding(tokenizer=tokenizer)
     loader = partial(DataLoader, collate_fn=collate_fn, **cfg.dataloader.model_dump())
     return DataLoaders(
-        train=loader(dataset=train, shuffle=True),
-        val=loader(dataset=val),
-        test=loader(dataset=test),
-        train_val=loader(dataset=train_val, shuffle=True),
+        train=loader(dataset=splits["train"], shuffle=True, drop_last=True),
+        val=loader(dataset=splits["val"]),
+        test=loader(dataset=splits["test"]),
+        train_val=loader(dataset=splits["train_val"], shuffle=True, drop_last=True),
     )

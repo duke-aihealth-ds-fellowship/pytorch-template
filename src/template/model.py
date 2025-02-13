@@ -5,10 +5,10 @@ from template.config import Config
 
 
 def set_hyperparameters(
-    cfg: Config, hidden_dim: int, n_layers: int, lr: float, weight_decay: float
+    cfg: Config, max_epochs: int, hidden_dim: int, lr: float, weight_decay: float
 ) -> Config:
+    cfg.trainer.max_epochs = max_epochs
     cfg.model.hidden_dim = 2**hidden_dim
-    cfg.model.n_layers = n_layers
     cfg.optimizer.lr = lr
     cfg.optimizer.weight_decay = weight_decay
     return cfg
@@ -21,27 +21,22 @@ class EmbeddingModel(nn.Module):
         embedding_dim: int,
         padding_idx: int,
         hidden_dim: int,
-        n_layers: int,
         output_dim: int,
     ) -> None:
         super().__init__()
-        self.embedddings = nn.Embedding(
+        self.embeddings = nn.Embedding(
             num_embeddings=vocab_size,
             embedding_dim=embedding_dim,
             padding_idx=padding_idx,
         )
-        mlp_layers = [
-            nn.ReLU(),
-            nn.Linear(in_features=hidden_dim, out_features=hidden_dim),
-        ] * n_layers
-        prediction_head = nn.Linear(in_features=hidden_dim, out_features=output_dim)
-        self.model = nn.Sequential(
+        self.mlp = nn.Sequential(
+            nn.LayerNorm(normalized_shape=embedding_dim),
             nn.Linear(in_features=embedding_dim, out_features=hidden_dim),
-            *mlp_layers,
-            nn.ReLU(),
-            prediction_head,
+            nn.SiLU(),
+            nn.Linear(in_features=hidden_dim, out_features=output_dim),
         )
 
     def forward(self, x: torch.Tensor):
-        x = self.embedddings(x).mean(dim=1)
-        return self.model(x)
+        x = self.embeddings(x)
+        x = x.mean(dim=1)
+        return self.mlp(x)
