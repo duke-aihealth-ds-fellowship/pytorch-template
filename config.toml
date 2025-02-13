@@ -1,15 +1,15 @@
 seed = 42 # Random seed for reproducibility
 dev_run = false # Run a small subset of the data for debugging
-regenerate = false # Regenerate the tokenized dataset
-tune = false      # tune hyperparameters
-train = false      # train using the best hyperparameters
+regenerate = true # Regenerate the tokenized dataset
+tune = true      # tune hyperparameters
+train = true      # train using the best hyperparameters
 evaluate = true   # Generate performance metrics from the test set
-feature_importance = false # Compute feature importance
+importance = true # Compute feature importance
 data_dir = "data/"
 
 [tokenizer]
 path = "tokenizer"
-vocab_size = 10_000
+vocab_size = 20_000
 max_length = 512
 
 [dataset]
@@ -27,7 +27,7 @@ persistent_workers = false
 [model]
 compile = false
 embedding_dim = 256
-hidden_dim = 64
+hidden_dim = 128
 
 [optimizer]
 lr = 1e-5
@@ -48,11 +48,11 @@ hparams_path = "hyperparameters.json"
 [hparams.max_epochs]
 name = "max_epochs"
 low = 1
-high = 1 # FIXME increase to 10
+high = 10
 [hparams.hidden_dim]
 name = "hidden_dim"
 low = 6 # 2^6 = 64
-high = 9 # 2^9 = 512
+high = 10 # 2^10 = 1024
 [hparams.lr]
 name = "lr"
 low = 1e-5
@@ -65,11 +65,10 @@ high = 1e-2
 log = true
 
 [evaluator]
-n_bootstraps = 0
-aggregate = true
+n_bootstraps = 3
 
-[importance]
-num_samples = 200
+[attribution]
+num_samples = 256
 plot_path = "importance.pdf"
 
 [plots]

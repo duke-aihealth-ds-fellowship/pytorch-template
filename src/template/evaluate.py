@@ -27,24 +27,18 @@ def make_metrics(cfg: Config):
             metric = BootStrapper(
                 metric,
                 num_bootstraps=cfg.evaluator.n_bootstraps,
-                mean=cfg.evaluator.aggregate,
-                std=cfg.evaluator.aggregate,
-                raw=not cfg.evaluator.aggregate,
+                mean=False,
+                std=False,
+                raw=True,
             )
         metrics[name] = metric
     return MetricCollection(metrics).to(cfg.trainer.device)
 
 
 def format_results(results: dict[str, torch.Tensor]) -> pl.DataFrame:
-    df = pl.DataFrame({k: v.item() for k, v in results.items()})
-    df = (
-        df.unpivot()
-        .with_columns(
-            pl.col("variable").str.split("_").list.to_struct(fields=["metric", "stat"])
-        )
-        .unnest("variable")
-        .pivot(on="stat", index="metric", values="value")
-    )
+    data = {k.split("_")[0]: v.cpu().tolist() for k, v in results.items()}
+    df = pl.DataFrame(data)
+    df = df.unpivot(variable_name="metric")
     return df
 
 

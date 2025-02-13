@@ -62,10 +62,9 @@ class HParamsConfig(BaseModel):
 
 class EvaluatorConfig(BaseModel):
     n_bootstraps: int
-    aggregate: bool
 
 
-class ImportanceConfig(BaseModel):
+class AttributionConfig(BaseModel):
     num_samples: int
     plot_path: Path
 
@@ -93,7 +92,7 @@ class Config(BaseModel):
     tune: bool
     train: bool
     evaluate: bool
-    feature_importance: bool
+    importance: bool
     data_dir: Path
     tokenizer: TokenizerConfig
     dataset: DatasetConfig
@@ -104,7 +103,7 @@ class Config(BaseModel):
     tuner: TunerConfig
     hparams: HParamsConfig
     evaluator: EvaluatorConfig
-    importance: ImportanceConfig
+    attribution: AttributionConfig
     plots: PlotConfig
 
     def model_post_init(self, __context: Any) -> None:
@@ -112,7 +111,7 @@ class Config(BaseModel):
         self.dataset.path = str(self.data_dir) + "/" + self.dataset.name
         self.tuner.hparams_path = self.data_dir / self.tuner.hparams_path
         self.tuner.checkpoint = self.data_dir / self.tuner.checkpoint
-        self.importance.plot_path = self.data_dir / self.importance.plot_path
+        self.attribution.plot_path = self.data_dir / self.attribution.plot_path
         self.tokenizer.path = str(self.data_dir) + "/" + self.tokenizer.path
         self.plots.path = self.data_dir / self.plots.path
         self.model.vocab_size = self.tokenizer.vocab_size

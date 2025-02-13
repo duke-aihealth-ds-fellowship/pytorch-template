@@ -31,7 +31,7 @@ def main():
     if cfg.evaluate:
         results = evaluate_model(cfg=cfg, loader=loaders.test)
         print(results)
-    if cfg.feature_importance:
+    if cfg.importance:
         shap_values = feature_importance(cfg=cfg, loaders=loaders)
         print(shap_values)
 
