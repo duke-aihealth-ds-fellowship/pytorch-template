@@ -12,6 +12,7 @@ class TokenizerConfig(BaseModel):
 
 
 class DatasetConfig(BaseModel):
+    name: str
     path: str
     train_size: float
     stratify: str
@@ -28,8 +29,8 @@ class ModelConfig(BaseModel):
     compile: bool
     embedding_dim: int
     hidden_dim: int
-    padding_idx: int = -1  # set at run time
     vocab_size: int = -1  # set at run time
+    padding_idx: int = -1  # set at run time
     output_dim: int = -1  # set at run time
 
 
@@ -76,6 +77,15 @@ class PlotConfig(BaseModel):
     palette: str
 
 
+def get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
+
+
 class Config(BaseModel):
     seed: int
     dev_run: bool
@@ -98,18 +108,12 @@ class Config(BaseModel):
     plots: PlotConfig
 
     def model_post_init(self, __context: Any) -> None:
-        self.dataset.path = str(self.data_dir) + self.dataset.path
+        self.data_dir.mkdir(exist_ok=True, parents=True)
+        self.dataset.path = str(self.data_dir) + "/" + self.dataset.name
         self.tuner.hparams_path = self.data_dir / self.tuner.hparams_path
         self.tuner.checkpoint = self.data_dir / self.tuner.checkpoint
         self.importance.plot_path = self.data_dir / self.importance.plot_path
-        self.tokenizer.path = str(self.data_dir) + self.tokenizer.path
+        self.tokenizer.path = str(self.data_dir) + "/" + self.tokenizer.path
         self.plots.path = self.data_dir / self.plots.path
-
-
-def get_device() -> str:
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.mps.is_available():
-        return "mps"
-    else:
-        return "cpu"
+        self.model.vocab_size = self.tokenizer.vocab_size
+        self.trainer.device = get_device()

@@ -1,19 +1,20 @@
-seed = 42
-dev_run = false
+seed = 42 # Random seed for reproducibility
+dev_run = false # Run a small subset of the data for debugging
 regenerate = false # Regenerate the tokenized dataset
 tune = false      # tune hyperparameters
 train = false      # train using the best hyperparameters
-evaluate = false   # Generate performance metrics from the test set
-feature_importance = true # Compute feature importance
+evaluate = true   # Generate performance metrics from the test set
+feature_importance = false # Compute feature importance
 data_dir = "data/"
 
 [tokenizer]
 path = "tokenizer"
-vocab_size = 20_000
+vocab_size = 10_000
 max_length = 512
 
 [dataset]
-path = "ag_news"
+name = "ag_news"
+path = "ag_news/"
 train_size = 0.8
 stratify = "label"
 
@@ -47,7 +48,7 @@ hparams_path = "hyperparameters.json"
 [hparams.max_epochs]
 name = "max_epochs"
 low = 1
-high = 2
+high = 1 # FIXME increase to 10
 [hparams.hidden_dim]
 name = "hidden_dim"
 low = 6 # 2^6 = 64
@@ -64,11 +65,11 @@ high = 1e-2
 log = true
 
 [evaluator]
-n_bootstraps = 100
+n_bootstraps = 0
 aggregate = true
 
 [importance]
-num_samples = 100
+num_samples = 200
 plot_path = "importance.pdf"
 
 [plots]

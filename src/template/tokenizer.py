@@ -1,5 +1,4 @@
 from functools import partial
-from pathlib import Path
 
 from datasets import Dataset, DatasetDict
 from tokenizers import Tokenizer, decoders
@@ -29,7 +28,7 @@ def make_tokenizer(dataset: Dataset, cfg: Config) -> PreTrainedTokenizerFast:
         single=f"{cls_token} $A {sep_token}",
         special_tokens=[(cls_token, cls_token_id), (sep_token, sep_token_id)],
     )  # type: ignore
-    return PreTrainedTokenizerFast(
+    tokenizer = PreTrainedTokenizerFast(
         tokenizer_object=tokenizer,
         bos_token=cls_token,
         eos_token=sep_token,
@@ -40,14 +39,7 @@ def make_tokenizer(dataset: Dataset, cfg: Config) -> PreTrainedTokenizerFast:
         mask_token=mask_token,
         padding_side="right",
     )
-
-
-def get_tokenizer(dataset: Dataset, cfg: Config) -> PreTrainedTokenizerFast:
-    if not Path(cfg.tokenizer.path).exists() or cfg.regenerate:
-        tokenizer = make_tokenizer(dataset=dataset, cfg=cfg)
-        tokenizer.save_pretrained(cfg.tokenizer.path)
-    else:
-        tokenizer = PreTrainedTokenizerFast.from_pretrained(cfg.tokenizer.path)
+    tokenizer.save_pretrained(cfg.tokenizer.path)
     return tokenizer
 
 
@@ -55,15 +47,12 @@ def tokenize_fn(batch, tokenizer: PreTrainedTokenizerFast, max_length: int):
     return tokenizer(batch["text"], truncation=True, max_length=max_length)
 
 
-def tokenize_dataset(tokenizer, splits: DatasetDict, cfg: Config):
-    if not Path(cfg.dataset.path).exists() or cfg.regenerate:
-        tokenize_text = partial(
-            tokenize_fn, tokenizer=tokenizer, max_length=cfg.tokenizer.max_length
-        )
-        splits = splits.map(tokenize_text, batched=True, remove_columns=["text"])
-        columns = ["label", "input_ids", "attention_mask"]
-        splits = splits.with_format("torch", columns=columns)
-        splits.save_to_disk(cfg.dataset.path)
-    else:
-        splits = DatasetDict.load_from_disk(cfg.dataset.path)
+def tokenize_dataset(tokenizer, splits: DatasetDict, cfg: Config) -> DatasetDict:
+    tokenize_text = partial(
+        tokenize_fn, tokenizer=tokenizer, max_length=cfg.tokenizer.max_length
+    )
+    splits = splits.map(tokenize_text, batched=True, remove_columns=["text"])
+    columns = ["label", "input_ids", "attention_mask"]
+    splits = splits.with_format("torch", columns=columns)
+    splits.save_to_disk(cfg.dataset.path)
     return splits

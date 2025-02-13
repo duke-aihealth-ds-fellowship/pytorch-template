@@ -30,7 +30,7 @@ class EmbeddingModel(nn.Module):
             padding_idx=padding_idx,
         )
         self.mlp = nn.Sequential(
-            nn.LayerNorm(normalized_shape=embedding_dim),
+            nn.RMSNorm(normalized_shape=embedding_dim),
             nn.Linear(in_features=embedding_dim, out_features=hidden_dim),
             nn.SiLU(),
             nn.Linear(in_features=hidden_dim, out_features=output_dim),

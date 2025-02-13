@@ -35,8 +35,21 @@ def make_metrics(cfg: Config):
     return MetricCollection(metrics).to(cfg.trainer.device)
 
 
+def format_results(results: dict[str, torch.Tensor]) -> pl.DataFrame:
+    df = pl.DataFrame({k: v.item() for k, v in results.items()})
+    df = (
+        df.unpivot()
+        .with_columns(
+            pl.col("variable").str.split("_").list.to_struct(fields=["metric", "stat"])
+        )
+        .unnest("variable")
+        .pivot(on="stat", index="metric", values="value")
+    )
+    return df
+
+
 @torch.no_grad()
-def evaluate_model(cfg: Config, loader: DataLoader) -> dict:
+def evaluate_model(cfg: Config, loader: DataLoader) -> pl.DataFrame:
     model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
     model.eval()
     metrics = make_metrics(cfg=cfg)
@@ -46,7 +59,7 @@ def evaluate_model(cfg: Config, loader: DataLoader) -> dict:
         outputs = model(inputs)
         metrics.update(outputs, labels)
     results = metrics.compute()
-    return results
+    return format_results(results)
 
 
 # TODO generate metrics for subsets of the data

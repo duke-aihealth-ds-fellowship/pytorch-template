@@ -53,6 +53,7 @@ def format_attributions(attributions, inputs):
     return df
 
 
+# FIXME
 def sum_attributions(df: pl.DataFrame):
     # sum attributions and count tokens within instances
     df = (
@@ -76,5 +77,5 @@ def feature_importance(cfg: Config, loaders: DataLoaders):
         inputs=inputs, baselines=baselines, model=model, cfg=cfg
     )
     df = format_attributions(attributions=attributions, inputs=inputs)
-    df = sum_attributions(df)
+    # FIXME df = sum_attributions(df)
     return df

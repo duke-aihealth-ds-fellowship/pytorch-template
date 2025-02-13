@@ -59,9 +59,8 @@ class Trainer:
 
     def train(self, train_loader: DataLoader, eval_loader: DataLoader) -> float:
         self.model.to(self.cfg.device)
-        num_batches = len(train_loader)
-        num_steps = self.cfg.max_epochs * num_batches
-        progress_bar = tqdm(total=num_steps, desc="Steps")
+        num_steps = self.cfg.max_epochs * len(train_loader)
+        progress_bar = tqdm(total=num_steps, desc="Training steps")
         self.eval_loss = self.evaluate(loader=eval_loader)
         self.model.train()
         for _ in range(self.cfg.max_epochs):
@@ -73,7 +72,8 @@ class Trainer:
                 self.update_progress(progress_bar)
             self.eval_loss = self.evaluate(loader=eval_loader)
             self.update_progress(progress_bar)
-        return train_loss
+        progress_bar.close()
+        return self.train_loss
 
     @torch.no_grad()
     def predict(self, loader: DataLoader) -> list[torch.Tensor]:

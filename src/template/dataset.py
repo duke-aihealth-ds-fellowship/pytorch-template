@@ -1,16 +1,18 @@
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import cast
 
 from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
 from torch.utils.data import DataLoader
-from transformers import DataCollatorWithPadding
+from transformers import DataCollatorWithPadding, PreTrainedTokenizerFast
 
 from template.config import Config
+from template.tokenizer import make_tokenizer, tokenize_dataset
 
 
 def make_splits(cfg: Config) -> DatasetDict:
-    dataset = load_dataset(cfg.dataset.path)
+    dataset = load_dataset(cfg.dataset.name)
     dataset_dict = cast(DatasetDict, dataset)
     dataset = concatenate_datasets([dataset_dict["train"], dataset_dict["test"]])
     if cfg.dev_run:
@@ -31,6 +33,16 @@ def make_splits(cfg: Config) -> DatasetDict:
     return splits
 
 
+def get_splits(cfg: Config) -> DatasetDict:
+    if not Path(cfg.dataset.path).exists() or cfg.regenerate:
+        splits = make_splits(cfg=cfg)
+        tokenizer = make_tokenizer(cfg=cfg, dataset=splits["train"])
+        splits = tokenize_dataset(tokenizer=tokenizer, splits=splits, cfg=cfg)
+    else:
+        splits = DatasetDict.load_from_disk(cfg.dataset.path)
+    return splits
+
+
 @dataclass
 class DataLoaders:
     train: DataLoader
@@ -39,7 +51,9 @@ class DataLoaders:
     train_val: DataLoader
 
 
-def make_dataloaders(splits: DatasetDict, tokenizer, cfg: Config) -> DataLoaders:
+def make_dataloaders(
+    splits: DatasetDict, tokenizer: PreTrainedTokenizerFast, cfg: Config
+) -> DataLoaders:
     collate_fn = DataCollatorWithPadding(tokenizer=tokenizer)
     loader = partial(DataLoader, collate_fn=collate_fn, **cfg.dataloader.model_dump())
     return DataLoaders(
