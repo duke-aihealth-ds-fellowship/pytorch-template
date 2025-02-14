@@ -1,40 +1,63 @@
-import matplotlib.colors as colors
 import matplotlib.pyplot as plt
+import numpy as np
 import polars as pl
 import seaborn as sns
+from matplotlib import colors
 
 from template.config import Config
 
 
-def get_top_k_tokens(df: pl.DataFrame, top_k: int) -> pl.Series:
-    return (
-        df.group_by("token")
-        .agg(pl.col("attribution").mean().abs())
-        .sort("attribution")
-        .tail(top_k)
-    )["token"].reverse()
+def get_top_k_tokens(df: pl.DataFrame, k: int) -> pl.DataFrame:
+    top_k = (
+        df.group_by("label", "word")
+        .agg(pl.col("attribution").mean().abs().alias("abs_attribution"))
+        .select(
+            pl.all()
+            .top_k_by(by="abs_attribution", k=k)
+            .over("label", mapping_strategy="explode")
+        )
+    )
+    df = df.join(top_k, on=["label", "word"])
+    df = df.sort("label", "abs_attribution", descending=True)
+    return df
 
 
-def plot_attributions(df: pl.DataFrame, cfg: Config):
-    sns.set_theme(style="darkgrid", font_scale=cfg.plots.font_scale)
-    top_k_tokens = get_top_k_tokens(df, top_k=20)
-    ax = sns.stripplot(
+def plot_attributions(cfg: Config):
+    sns.set_theme(style=cfg.plots.style, font_scale=cfg.plots.font_scale)
+    plt.figure()
+    df = pl.read_parquet(cfg.attribution.path)
+    df = get_top_k_tokens(df, k=10)
+    vmin = min(df["count"].to_list())
+    vmax = max(df["count"].to_list())
+    norm = colors.Normalize(vmin, vmax)
+    df = df.with_columns(
+        pl.col("label").replace_strict(
+            {"0": "World", "1": "Sports", "2": "Business", "3": "Sci/Tech"}
+        )
+    )
+    g = sns.catplot(
         data=df,
         x="attribution",
-        y="token",
-        hue="count",
+        y="word",
+        hue=df["count"].to_list(),
+        hue_norm=norm,
+        col="label",
+        col_wrap=2,
+        kind="strip",
         linestyles="",
-        order=top_k_tokens,
         palette=cfg.plots.palette,
         legend=False,
         jitter=0.2,
         alpha=0.5,
+        sharey=False,
+        sharex=False,
     )
-    ax.set_ylabel("token")
-    plt.grid(axis="y")
-    plt.axvline(0, color="black", linestyle="--")
-    norm = colors.Normalize(min(df["count"].to_list()), max(df["count"].to_list()))
+    g.set_axis_labels("Shap value", "Word")
     sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
-    cbar = plt.colorbar(sm, ax=ax)
-    cbar.set_label("Count")
-    plt.savefig(cfg.importance.plot_path, format="pdf")
+    sm.set_array(np.array([norm.vmin, norm.vmax]))
+    color_bar = g.figure.colorbar(sm, ax=g.axes.ravel().tolist())
+    color_bar.set_label("Count")
+    for ax in g.axes.flat:
+        ax.grid(axis="y")
+        ax.axvline(0, color="black", linestyle="--")
+    plt.savefig(cfg.plots.importance)

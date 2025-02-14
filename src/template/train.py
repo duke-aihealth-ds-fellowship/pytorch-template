@@ -40,6 +40,14 @@ class Trainer:
         self.optimizer.step()
         return loss.item()
 
+    def train_epoch(self, loader: DataLoader, progress_bar: tqdm):
+        self.model.train()
+        train_loss = 0
+        for step, batch in enumerate(loader, start=1):
+            train_loss += self.train_step(batch)
+            self.train_loss = train_loss / step
+            self.update_progress(progress_bar)
+
     @torch.no_grad()
     def evaluate(self, loader: DataLoader) -> float:
         self.model.eval()
@@ -58,18 +66,12 @@ class Trainer:
         progress_bar.update()
 
     def train(self, train_loader: DataLoader, eval_loader: DataLoader) -> float:
-        self.model.to(self.cfg.device)
         num_steps = self.cfg.max_epochs * len(train_loader)
         progress_bar = tqdm(total=num_steps, desc="Training steps")
         self.eval_loss = self.evaluate(loader=eval_loader)
         self.model.train()
         for _ in range(self.cfg.max_epochs):
-            train_loss = 0
-            self.model.train()
-            for step, batch in enumerate(train_loader, start=1):
-                train_loss += self.train_step(batch)
-                self.train_loss = train_loss / step
-                self.update_progress(progress_bar)
+            self.train_epoch(train_loader, progress_bar)
             self.eval_loss = self.evaluate(loader=eval_loader)
             self.update_progress(progress_bar)
         progress_bar.close()
@@ -90,6 +92,7 @@ def make_trainer(cfg: Config) -> Trainer:
     model = EmbeddingModel(**cfg.model.model_dump(exclude={"compile"}))
     if cfg.model.compile:
         model = torch.compile(model)
+    model.to(cfg.trainer.device)
     optimizer = SGD(model.parameters(), **cfg.optimizer.model_dump(), fused=True)
     criterion = nn.CrossEntropyLoss()
     return Trainer(
@@ -97,8 +100,8 @@ def make_trainer(cfg: Config) -> Trainer:
     )
 
 
-def train_model(loaders: DataLoaders, cfg: Config, use_best: bool = False):
-    if use_best:
+def train_model(loaders: DataLoaders, cfg: Config):
+    if cfg.use_best:
         with open(cfg.tuner.hparams_path, "r") as file:
             hyperparameters = json.load(file)
         cfg = set_hyperparameters(cfg=cfg, **hyperparameters)

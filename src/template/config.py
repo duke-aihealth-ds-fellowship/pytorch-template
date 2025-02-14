@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import torch
 from pydantic import BaseModel
@@ -66,14 +66,15 @@ class EvaluatorConfig(BaseModel):
 
 class AttributionConfig(BaseModel):
     num_samples: int
-    plot_path: Path
+    path: Path
 
 
 class PlotConfig(BaseModel):
-    path: Path
-    style: str
+    path: str
+    style: Literal["white", "dark", "whitegrid", "darkgrid"]
     font_scale: float
     palette: str
+    importance: str
 
 
 def get_device() -> str:
@@ -90,9 +91,11 @@ class Config(BaseModel):
     dev_run: bool
     regenerate: bool
     tune: bool
+    use_best: bool
     train: bool
     evaluate: bool
     importance: bool
+    plot: bool
     data_dir: Path
     tokenizer: TokenizerConfig
     dataset: DatasetConfig
@@ -106,13 +109,16 @@ class Config(BaseModel):
     attribution: AttributionConfig
     plots: PlotConfig
 
+    # TODO automate path construction
     def model_post_init(self, __context: Any) -> None:
         self.data_dir.mkdir(exist_ok=True, parents=True)
         self.dataset.path = str(self.data_dir) + "/" + self.dataset.name
         self.tuner.hparams_path = self.data_dir / self.tuner.hparams_path
         self.tuner.checkpoint = self.data_dir / self.tuner.checkpoint
-        self.attribution.plot_path = self.data_dir / self.attribution.plot_path
         self.tokenizer.path = str(self.data_dir) + "/" + self.tokenizer.path
-        self.plots.path = self.data_dir / self.plots.path
+        self.plots.importance = str(
+            self.data_dir / self.plots.path / self.plots.importance
+        )
+        self.attribution.path = self.data_dir / self.attribution.path
         self.model.vocab_size = self.tokenizer.vocab_size
         self.trainer.device = get_device()

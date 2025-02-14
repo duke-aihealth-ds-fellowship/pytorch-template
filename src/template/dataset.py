@@ -51,9 +51,10 @@ class DataLoaders:
     train_val: DataLoader
 
 
-def make_dataloaders(
-    splits: DatasetDict, tokenizer: PreTrainedTokenizerFast, cfg: Config
-) -> DataLoaders:
+def make_dataloaders(splits: DatasetDict, cfg: Config) -> DataLoaders:
+    tokenizer = PreTrainedTokenizerFast.from_pretrained(cfg.tokenizer.path)
+    cfg.model.output_dim = len(splits["train"].unique("label"))
+    cfg.model.padding_idx = tokenizer.pad_token_id  # type: ignore
     collate_fn = DataCollatorWithPadding(tokenizer=tokenizer)
     loader = partial(DataLoader, collate_fn=collate_fn, **cfg.dataloader.model_dump())
     return DataLoaders(

@@ -6,7 +6,7 @@ from captum.attr import (
     configure_interpretable_embedding_layer,
     remove_interpretable_embedding_layer,
 )
-from torch.nn.utils.rnn import pad_sequence
+from transformers import PreTrainedTokenizerFast
 
 from template.config import Config
 from template.dataset import DataLoaders  # , collate_fn
@@ -15,67 +15,82 @@ from template.tune import load_best_checkpoint
 
 
 def make_attributions(
-    inputs: torch.Tensor, baselines: torch.Tensor, model: EmbeddingModel, cfg: Config
+    target: int, inputs: torch.Tensor, baselines: torch.Tensor, cfg: Config
 ):
+    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
     inputs = inputs.to(cfg.trainer.device)
     baselines = baselines.to(cfg.trainer.device)
     model.to(cfg.trainer.device)
     interpretable_embedding = configure_interpretable_embedding_layer(
         model, "embeddings"
     )
-
-    def forward(inputs):
-        outputs = model(inputs)
-        return outputs.sum(dim=-1)
-
-    lig = LayerGradientShap(forward, layer=model.embeddings)  # type: ignore
+    lig = LayerGradientShap(model, layer=model.embeddings)  # type: ignore
     input_embeds = interpretable_embedding.indices_to_embeddings(inputs)
     baseline_embeds = interpretable_embedding.indices_to_embeddings(baselines)
     attributions, delta = lig.attribute(
-        inputs=input_embeds, baselines=baseline_embeds, return_convergence_delta=True
+        inputs=input_embeds,
+        baselines=baseline_embeds,
+        return_convergence_delta=True,
+        target=target,
     )
     remove_interpretable_embedding_layer(model, interpretable_embedding)
     print("Mean convergence delta:", delta.mean().item())
     # sum attributions across embedding dimension
-    return attributions.sum(dim=-1)  # type: ignore
+    attributions = attributions.sum(dim=-1)  # type: ignore
+    return attributions
 
 
-def format_attributions(attributions, inputs):
-    df = pl.DataFrame(
-        {
-            "instance": np.repeat(np.arange(inputs.size(0)), inputs.size(1)),
-            "position": np.tile(np.arange(inputs.shape[1]), inputs.shape[0]),
-            "index": inputs.flatten().cpu().numpy(),
-            "attribution": attributions.detach().flatten().cpu().numpy(),
-        }
-    )  # TODO .with_columns(pl.col("index").replace_strict(vocab_decoder).alias("token"))
-    print(df)
-    return df
-
-
-# FIXME
-def sum_attributions(df: pl.DataFrame):
-    # sum attributions and count tokens within instances
+def format_attributions(
+    text: list[str], attributions: torch.Tensor, offsets: torch.Tensor
+):
+    batch_size, seq_len = attributions.size()
+    sample_ids = np.repeat(np.arange(batch_size), seq_len)
+    flat_offsets = offsets.flatten(0, 1).cpu().numpy()
+    flat_attributions = attributions.flatten(0, 1).cpu().numpy()
+    df = pl.DataFrame({"text": text}).with_row_index("sample_id")
     df = (
-        df.group_by("instance", "index")
-        .agg(pl.col("attribution").sum(), pl.col("token").count().alias("count"))
-        .sort("instance", "index")
+        pl.DataFrame(
+            {
+                "sample_id": sample_ids,
+                "start": flat_offsets[:, 0],
+                "end": flat_offsets[:, 1],
+                "attribution": flat_attributions,
+            }
+        )
+        .filter(pl.col("start") != pl.col("end"))
+        .join(df, on="sample_id")
+        .with_columns(
+            word=pl.col("text").str.slice(
+                pl.col("start"), pl.col("end") - pl.col("start")
+            )
+        )
+        .group_by(["sample_id", "word"])
+        .agg(pl.col("attribution").sum(), pl.col("word").count().alias("count"))
     )
     return df
 
 
-# TODO decode tokens and sum attributions grouped by offsets
 def feature_importance(cfg: Config, loaders: DataLoaders):
-    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
-    data = [instance["input_ids"] for instance in loaders.test.dataset]
-    data = data[: cfg.importance.num_samples]
-    data = pad_sequence(data, batch_first=True, padding_value=cfg.model.padding_idx)
-    half = data.size(0) // 2
-    inputs = data[:half]
-    baselines = data[half:]
-    attributions = make_attributions(
-        inputs=inputs, baselines=baselines, model=model, cfg=cfg
-    )
-    df = format_attributions(attributions=attributions, inputs=inputs)
-    # FIXME df = sum_attributions(df)
+    dfs: list[pl.DataFrame] = []
+    for label in loaders.test.dataset["label"].unique():
+        tokenizer = PreTrainedTokenizerFast.from_pretrained(cfg.tokenizer.path)
+        encodings = tokenizer(
+            loaders.test.dataset["text"],
+            return_tensors="pt",
+            padding=True,
+            return_offsets_mapping=True,
+        )
+        n = cfg.attribution.num_samples
+        offsets = encodings.offset_mapping[:n]
+        input_ids = encodings.input_ids[:n]
+        baselines = encodings.input_ids[n:]
+        text = tokenizer.batch_decode(input_ids, skip_special_tokens=True)
+        attributions = make_attributions(
+            target=label, inputs=input_ids, baselines=baselines, cfg=cfg
+        )
+        df = format_attributions(text=text, attributions=attributions, offsets=offsets)
+        df = df.with_columns(pl.lit(label).alias("label"))
+        dfs.append(df)
+    df = pl.concat(dfs)
+    df.write_parquet(cfg.attribution.path)
     return df

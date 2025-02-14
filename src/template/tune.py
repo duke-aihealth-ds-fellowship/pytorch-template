@@ -67,8 +67,9 @@ def load_best_checkpoint(cfg: Config, model_class):
     with open(cfg.tuner.hparams_path, "r") as file:
         hyperparams = json.load(file)
     cfg = set_hyperparameters(cfg=cfg, **hyperparams)
-    model = model_class(**cfg.model.model_dump(exclude={"compile"}))
-    model_weights = torch.load(cfg.tuner.checkpoint, weights_only=True)
-    model.load_state_dict(model_weights)
+    with torch.device("meta"):
+        model = model_class(**cfg.model.model_dump(exclude={"compile"}))
+    model_weights = torch.load(cfg.tuner.checkpoint, weights_only=True, mmap=True)
+    model.load_state_dict(model_weights, assign=True)
     model.to(cfg.trainer.device)
     return model
