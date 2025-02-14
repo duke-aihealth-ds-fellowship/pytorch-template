@@ -1,18 +1,19 @@
 seed = 42         # Random seed for reproducibility
 dev_run = false   # Run a small subset of the data for debugging
-regenerate = true # Regenerate the tokenized dataset
-tune = true      # tune hyperparameters
-use_best = true   # use best or default hyperparameters 
+regenerate = false # Regenerate the tokenized dataset
+tune = false      # tune hyperparameters
+use_best = true   # use best hyperparameters found during tuning
 train = true      # train model
 evaluate = true   # Generate performance metrics from the test set
 importance = true # Compute feature importance
 plot = true       # Generate plots/figures
 data_dir = "data/"
+compile = false   # Compile the model
 
 [tokenizer]
 path = "tokenizer"
 vocab_size = 30_000
-max_length = 512
+max_length = 265
 
 [dataset]
 name = "ag_news"
@@ -21,7 +22,7 @@ train_size = 0.8
 stratify = "label"
 
 [dataloader]
-batch_size = 32
+batch_size = 64
 num_workers = 0   # > 1 for multiprocessing
 pin_memory = true
 persistent_workers = false
@@ -35,6 +36,12 @@ hidden_dim = 256
 lr = 1e-5
 momentum = 0.9
 weight_decay = 1e-6
+fused = true
+
+[scheduler]
+T_0 = 0
+T_mult = 1
+eta_min = 0.0
 
 [trainer]
 max_epochs = 4

@@ -26,7 +26,6 @@ class DataLoaderConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    compile: bool
     embedding_dim: int
     hidden_dim: int
     vocab_size: int = -1  # set at run time
@@ -38,6 +37,13 @@ class OptimizerConfig(BaseModel):
     lr: float
     momentum: float
     weight_decay: float
+    fused: bool
+
+
+class SchedulerConfig(BaseModel):
+    T_0: int
+    T_mult: int
+    eta_min: float
 
 
 class TrainerConfig(BaseModel):
@@ -98,11 +104,13 @@ class Config(BaseModel):
     importance: bool
     plot: bool
     data_dir: Path
+    compile: bool
     tokenizer: TokenizerConfig
     dataset: DatasetConfig
     dataloader: DataLoaderConfig
     model: ModelConfig
     optimizer: OptimizerConfig
+    scheduler: SchedulerConfig
     trainer: TrainerConfig
     tuner: TunerConfig
     hparams: HParamsConfig
