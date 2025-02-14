@@ -1,7 +1,7 @@
 seed = 42         # Random seed for reproducibility
 dev_run = false   # Run a small subset of the data for debugging
 regenerate = true # Regenerate the tokenized dataset
-tune = false      # tune hyperparameters
+tune = true      # tune hyperparameters
 use_best = true   # use best or default hyperparameters 
 train = true      # train model
 evaluate = true   # Generate performance metrics from the test set
@@ -68,6 +68,7 @@ log = true
 
 [evaluator]
 n_bootstraps = 3
+path = "metrics.parquet"
 
 [attribution]
 path = "attribution.parquet"

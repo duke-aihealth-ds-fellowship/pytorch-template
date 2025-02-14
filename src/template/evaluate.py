@@ -53,7 +53,9 @@ def evaluate_model(cfg: Config, loader: DataLoader) -> pl.DataFrame:
         outputs = model(inputs)
         metrics.update(outputs, labels)
     results = metrics.compute()
-    return format_results(results)
+    results = format_results(results)
+    results.write_parquet(cfg.evaluator.path)
+    return results
 
 
 # TODO generate metrics for subsets of the data

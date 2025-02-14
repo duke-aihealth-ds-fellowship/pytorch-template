@@ -62,6 +62,7 @@ class HParamsConfig(BaseModel):
 
 class EvaluatorConfig(BaseModel):
     n_bootstraps: int
+    path: Path
 
 
 class AttributionConfig(BaseModel):
@@ -112,10 +113,11 @@ class Config(BaseModel):
     # TODO automate path construction
     def model_post_init(self, __context: Any) -> None:
         self.data_dir.mkdir(exist_ok=True, parents=True)
+        self.tokenizer.path = str(self.data_dir) + "/" + self.tokenizer.path
         self.dataset.path = str(self.data_dir) + "/" + self.dataset.name
         self.tuner.hparams_path = self.data_dir / self.tuner.hparams_path
         self.tuner.checkpoint = self.data_dir / self.tuner.checkpoint
-        self.tokenizer.path = str(self.data_dir) + "/" + self.tokenizer.path
+        self.evaluator.path = self.data_dir / self.evaluator.path
         self.plots.importance = str(
             self.data_dir / self.plots.path / self.plots.importance
         )
