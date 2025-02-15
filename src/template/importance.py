@@ -6,10 +6,10 @@ from captum.attr import (
     configure_interpretable_embedding_layer,
     remove_interpretable_embedding_layer,
 )
+from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerFast
 
 from template.config import Config
-from template.dataset import DataLoaders  # , collate_fn
 from template.model import EmbeddingModel
 from template.tune import load_best_checkpoint
 
@@ -42,7 +42,7 @@ def make_attributions(
 
 def format_attributions(
     text: list[str],
-    word_ids: list[int],  # FIXME
+    word_ids: list[int],  # FIXME unused
     attributions: torch.Tensor,
     offsets: torch.Tensor,
 ):
@@ -71,10 +71,10 @@ def format_attributions(
     return df
 
 
-def feature_importance(cfg: Config, loaders: DataLoaders):
+def feature_importance(cfg: Config, loader: DataLoader):
     tokenizer = PreTrainedTokenizerFast.from_pretrained(cfg.tokenizer.path)
     encodings = tokenizer(
-        loaders.test.dataset["text"],
+        loader.dataset["text"],
         return_tensors="pt",
         padding=True,
         return_offsets_mapping=True,
@@ -85,7 +85,7 @@ def feature_importance(cfg: Config, loaders: DataLoaders):
     baselines = encodings.input_ids[n:]
     text = tokenizer.batch_decode(input_ids, skip_special_tokens=True)
     dfs: list[pl.DataFrame] = []
-    for label in loaders.test.dataset["label"].unique():
+    for label in loader.dataset["label"].unique():
         attributions = make_attributions(
             target=label, inputs=input_ids, baselines=baselines, cfg=cfg
         )

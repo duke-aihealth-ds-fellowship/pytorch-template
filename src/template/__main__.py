@@ -1,19 +1,16 @@
 import torch
-from tomllib import load
 
-from template.config import Config
+from template.config import get_config
 from template.dataset import get_splits, make_dataloaders
 from template.evaluate import evaluate_model
 from template.importance import feature_importance
-from template.plots import plot_attributions
+from template.plots import plot
 from template.train import train_model
 from template.tune import tune_hyperparameters
 
 
 def main():
-    with open("config.toml", "rb") as f:
-        cfg_data = load(f)
-    cfg = Config(**cfg_data)
+    cfg = get_config()
 
     torch.manual_seed(cfg.main.seed)
     torch.set_float32_matmul_precision("high")
@@ -28,9 +25,9 @@ def main():
     if cfg.main.evaluate:
         evaluate_model(cfg=cfg, loader=loaders.test)
     if cfg.main.importance:
-        feature_importance(cfg=cfg, loaders=loaders)
+        feature_importance(cfg=cfg, loader=loaders.test)
     if cfg.main.plot:
-        plot_attributions(cfg=cfg)
+        plot(cfg=cfg)
 
 
 if __name__ == "__main__":

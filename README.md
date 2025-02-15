@@ -40,15 +40,18 @@ python -m mypackage
 
 All arguments that affect program behavior are consolidated in `config.toml`. This allows for easy modification of program behavior without changing the source code. The `config.toml` file is parsed and validated with Pydantic and can be accessed as a Python object in the scripts. The file `__main__.py` is the entry point for the package where all high-level control flow is defined.
 
-## Implemented components
+## Features
 
-- Configuration validation with Pydantic
+- Configuration validation with toml + Pydantic
 - Tokenization
 - Dataloaders for train, validation, and test splits
 - A trainer with training and evaluation loop
 - Hyperparameter tuning with Optuna
+- Checkpointing
+- Learning rate scheduling
 - Model evaluation with TorchMetrics
 - Feature importance with Captum
+- Metric and feature importance plots with Seaborn/Matplotlib
 
 ## Toy dataset examples
 
@@ -57,15 +60,18 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 
 ## Design philosophy
 
-- Simple is better than clever
-- Explicit is better than implicit
-- Modular is better than monolithic
+We prefer
+
+- Simple over clever
+- Explicit over implicit
+- Modular over monolithic
 - Practicality over purity
+- Readability over conciseness
 
 ## Style guide
 
 - Default `ruff` formatting
-- Type hints are required
+- Type hints are required (though not enforced)
 - Names should be descriptive, concise, and consistent
 - Variable names are snake_case
 - Class names are CamelCase
@@ -73,9 +79,10 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 
 ### TODO
 
-- Logging
+- Logging (e.g. Tensorboard)
 - Distributed training
-- Learning rate schedulers
 - Tokenization
 - More toy datasets modalities, e.g., images, tabular, etc.
-- Save configuration after the final model is trained
+- Save configuration file after the final model is trained
+- Automate path construction
+- Tests

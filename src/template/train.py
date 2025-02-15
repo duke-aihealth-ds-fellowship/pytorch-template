@@ -36,7 +36,14 @@ class Trainer:
         self.train_loss = float("inf")
         self.eval_loss = float("inf")
         self.progress_bar: tqdm
-        self.epoch: int
+
+    def update_progress(self):
+        lr = self.scheduler.get_last_lr()[0]
+        postfix = f"lr: {lr:.4e}, Train loss: {self.train_loss:.4f}"
+        if self.eval_loss < float("inf"):
+            postfix += f", Eval loss: {self.eval_loss:.4f}"
+        self.progress_bar.set_postfix_str(postfix)
+        self.progress_bar.update()
 
     def train_step(self, batch: dict[str, torch.Tensor]) -> float:
         inputs = batch["input_ids"].to(self.device)
@@ -58,6 +65,19 @@ class Trainer:
             self.update_progress()
         self.scheduler.step()
 
+    def train(
+        self, train_loader: DataLoader, eval_loader: DataLoader | None = None
+    ) -> float:
+        num_steps = self.max_epochs * len(train_loader)
+        self.progress_bar = tqdm(total=num_steps, desc="Training steps")
+        for _ in range(1, self.max_epochs + 1):
+            self.train_epoch(train_loader)
+            if eval_loader is not None:
+                self.evaluate(loader=eval_loader)
+        self.progress_bar.close()
+        return self.train_loss
+
+    @torch.no_grad()
     def evaluate_step(self, batch: dict[str, torch.Tensor]) -> float:
         inputs = batch["input_ids"].to(self.device)
         labels = batch["labels"].to(self.device)
@@ -72,27 +92,6 @@ class Trainer:
             loss += self.evaluate_step(batch)
         self.eval_loss = loss / len(loader)
         return self.eval_loss
-
-    def update_progress(self):
-        lr = self.scheduler.get_last_lr()[0]
-        postfix = f"Epoch {self.epoch}, lr: {lr:.4e}, Train loss: {self.train_loss:.4f}"
-        if self.eval_loss < float("inf"):
-            postfix += f", Eval loss: {self.eval_loss:.4f}"
-        self.progress_bar.set_postfix_str(postfix)
-        self.progress_bar.update()
-
-    def train(
-        self, train_loader: DataLoader, eval_loader: DataLoader | None = None
-    ) -> float:
-        num_steps = self.max_epochs * len(train_loader)
-        self.progress_bar = tqdm(total=num_steps, desc="Training steps")
-        for epoch in range(1, self.max_epochs + 1):
-            self.epoch = epoch
-            self.train_epoch(train_loader)
-            if eval_loader is not None:
-                self.evaluate(loader=eval_loader)
-            self.update_progress()
-        return self.train_loss
 
     @torch.no_grad()
     def predict(self, loader: DataLoader) -> list[torch.Tensor]:

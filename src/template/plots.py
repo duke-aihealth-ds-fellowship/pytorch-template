@@ -4,7 +4,23 @@ import polars as pl
 import seaborn as sns
 from matplotlib import colors
 
-from template.config import Config
+from template.config import Config, get_config
+
+
+def plot_metrics(cfg: Config):
+    df = pl.read_parquet(cfg.evaluator.path)
+    plt.figure()
+    sns.set_theme(style=cfg.plots.style, font_scale=cfg.plots.font_scale)
+    g = sns.catplot(
+        data=df,
+        x="metric",
+        y="value",
+        kind="bar",
+        legend=True,
+        errorbar="pi",  # 95% confidence interval
+    )
+    g.set_axis_labels("Metric", "Value")
+    plt.savefig(cfg.plots.metrics)
 
 
 def get_top_k_tokens(df: pl.DataFrame, k: int) -> pl.DataFrame:
@@ -23,18 +39,13 @@ def get_top_k_tokens(df: pl.DataFrame, k: int) -> pl.DataFrame:
 
 
 def plot_attributions(cfg: Config):
-    sns.set_theme(style=cfg.plots.style, font_scale=cfg.plots.font_scale)
     plt.figure()
+    sns.set_theme(style=cfg.plots.style, font_scale=cfg.plots.font_scale)
     df = pl.read_parquet(cfg.attribution.path)
     df = get_top_k_tokens(df, k=10)
     vmin = min(df["count"].to_list())
     vmax = max(df["count"].to_list())
     norm = colors.Normalize(vmin, vmax)
-    df = df.with_columns(
-        pl.col("label").replace_strict(
-            {"0": "World", "1": "Sports", "2": "Business", "3": "Sci/Tech"}
-        )
-    )
     g = sns.catplot(
         data=df,
         x="attribution",
@@ -61,3 +72,13 @@ def plot_attributions(cfg: Config):
         ax.grid(axis="y")
         ax.axvline(0, color="black", linestyle="--")
     plt.savefig(cfg.plots.importance)
+
+
+def plot(cfg: Config):
+    plot_metrics(cfg)
+    plot_attributions(cfg)
+
+
+if __name__ == "__main__":
+    cfg = get_config()
+    plot(cfg)

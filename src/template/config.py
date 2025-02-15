@@ -3,6 +3,7 @@ from typing import Any, Literal
 
 import torch
 from pydantic import BaseModel
+from tomllib import load
 
 
 class MainConfig(BaseModel):
@@ -95,6 +96,7 @@ class AttributionConfig(BaseModel):
 class PlotConfig(BaseModel):
     path: Path
     importance: Path
+    metrics: Path
     style: Literal["white", "dark", "whitegrid", "darkgrid"]
     font_scale: float
     palette: str
@@ -131,6 +133,7 @@ class Config(BaseModel):
         self.hparams.max_epochs["low"] = 1
         self.hparams.max_epochs["high"] = 1
         self.evaluator.n_bootstraps = 3
+        self.attribution.num_samples = 10
 
     # TODO automate path construction
     def init_paths(self) -> None:
@@ -139,12 +142,20 @@ class Config(BaseModel):
         self.hparams.path = self.main.data / self.hparams.path
         self.tuner.checkpoint = self.main.data / self.tuner.checkpoint
         self.evaluator.path = self.main.data / self.evaluator.path
-        self.plots.importance = self.main.data / self.plots.path / self.plots.importance
         self.attribution.path = self.main.data / self.attribution.path
+        self.plots.path = self.main.data / self.plots.path
+        self.plots.importance = self.plots.path / self.plots.importance
+        self.plots.metrics = self.plots.path / self.plots.metrics
         self.model.vocab_size = self.tokenizer.vocab_size
-        self.trainer.device = get_device()
 
     def model_post_init(self, __context: Any) -> None:
+        self.trainer.device = get_device()
         self.init_paths()
         if self.main.dev_run:
             self.set_dev_run()
+
+
+def get_config():
+    with open("config.toml", "rb") as f:
+        cfg_data = load(f)
+    return Config(**cfg_data)

@@ -2,10 +2,10 @@
 seed = 42           # Random seed for reproducibility
 dev_run = false     # Run a small subset of the data for debugging
 regenerate = true  # Regenerate the tokenized dataset
-tune = true        # tune hyperparameters
-use_best = true     # use best hyperparameters found during tuning
-train = true       # train model
-evaluate = true    # Generate performance metrics from the test set
+tune = true        # tune the model hyperparameters
+use_best = true     # use the best hyperparameters found during tuning
+train = true       # train the model
+evaluate = true    # Generate test set model performance metrics 
 importance = true   # Compute feature importance
 plot = true        # Generate plots/figures
 compile = false     # Compile the Torch model
@@ -13,7 +13,7 @@ data = "data/"      # Path to the data directory
 
 [tokenizer]
 path = "tokenizer"
-vocab_size = 10_000
+vocab_size = 2_000 # increase for larger corpus
 max_length = 265
 
 [dataset]
@@ -29,8 +29,8 @@ persistent_workers = false
 
 [model]
 compile = false
-embedding_dim = 256
-hidden_dim = 256
+embedding_dim = 128
+hidden_dim = 128
 
 [loss]
 ignore_index = -100
@@ -59,7 +59,7 @@ path = "hyperparameters.json"
 [hparams.max_epochs]
 name = "max_epochs"
 low = 1
-high = 5
+high = 10
 [hparams.hidden_dim]
 name = "hidden_dim"
 low = 6 # 2^6 = 64
@@ -81,12 +81,13 @@ path = "metrics.parquet"
 
 [attribution]
 path = "attribution.parquet"
-num_samples = 32
+num_samples = 512
 
 
 [plots]
 path = "plots/"
+importance = "importance.png"
+metrics = "metrics.png"
 style = "darkgrid"
 font_scale = 1.5
 palette = "viridis"
-importance = "importance.png"
