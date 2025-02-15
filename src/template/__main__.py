@@ -15,21 +15,21 @@ def main():
         cfg_data = load(f)
     cfg = Config(**cfg_data)
 
-    torch.manual_seed(cfg.seed)
+    torch.manual_seed(cfg.main.seed)
     torch.set_float32_matmul_precision("high")
 
     splits = get_splits(cfg=cfg)
     loaders = make_dataloaders(splits=splits, cfg=cfg)
 
-    if cfg.tune:
+    if cfg.main.tune:
         tune_hyperparameters(loaders, cfg=cfg)
-    if cfg.train:
+    if cfg.main.train:
         train_model(cfg=cfg, loaders=loaders)
-    if cfg.evaluate:
+    if cfg.main.evaluate:
         evaluate_model(cfg=cfg, loader=loaders.test)
-    if cfg.importance:
+    if cfg.main.importance:
         feature_importance(cfg=cfg, loaders=loaders)
-    if cfg.plot:
+    if cfg.main.plot:
         plot_attributions(cfg=cfg)
 
 

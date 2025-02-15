@@ -41,20 +41,21 @@ def make_attributions(
 
 
 def format_attributions(
-    text: list[str], attributions: torch.Tensor, offsets: torch.Tensor
+    text: list[str],
+    word_ids: list[int],  # FIXME
+    attributions: torch.Tensor,
+    offsets: torch.Tensor,
 ):
     batch_size, seq_len = attributions.size()
-    sample_ids = np.repeat(np.arange(batch_size), seq_len)
     flat_offsets = offsets.flatten(0, 1).cpu().numpy()
-    flat_attributions = attributions.flatten(0, 1).cpu().numpy()
     df = pl.DataFrame({"text": text}).with_row_index("sample_id")
     df = (
         pl.DataFrame(
             {
-                "sample_id": sample_ids,
+                "sample_id": np.repeat(np.arange(batch_size), seq_len),
                 "start": flat_offsets[:, 0],
                 "end": flat_offsets[:, 1],
-                "attribution": flat_attributions,
+                "attribution": attributions.flatten(0, 1).cpu().numpy(),
             }
         )
         .filter(pl.col("start") != pl.col("end"))
@@ -71,24 +72,27 @@ def format_attributions(
 
 
 def feature_importance(cfg: Config, loaders: DataLoaders):
+    tokenizer = PreTrainedTokenizerFast.from_pretrained(cfg.tokenizer.path)
+    encodings = tokenizer(
+        loaders.test.dataset["text"],
+        return_tensors="pt",
+        padding=True,
+        return_offsets_mapping=True,
+    )
+    n = cfg.attribution.num_samples
+    offsets = encodings.offset_mapping[:n]
+    input_ids = encodings.input_ids[:n]
+    baselines = encodings.input_ids[n:]
+    text = tokenizer.batch_decode(input_ids, skip_special_tokens=True)
     dfs: list[pl.DataFrame] = []
     for label in loaders.test.dataset["label"].unique():
-        tokenizer = PreTrainedTokenizerFast.from_pretrained(cfg.tokenizer.path)
-        encodings = tokenizer(
-            loaders.test.dataset["text"],
-            return_tensors="pt",
-            padding=True,
-            return_offsets_mapping=True,
-        )
-        n = cfg.attribution.num_samples
-        offsets = encodings.offset_mapping[:n]
-        input_ids = encodings.input_ids[:n]
-        baselines = encodings.input_ids[n:]
-        text = tokenizer.batch_decode(input_ids, skip_special_tokens=True)
         attributions = make_attributions(
             target=label, inputs=input_ids, baselines=baselines, cfg=cfg
         )
-        df = format_attributions(text=text, attributions=attributions, offsets=offsets)
+        word_ids = [encodings.word_ids(i) for i in range(n)]
+        df = format_attributions(
+            text=text, word_ids=word_ids, attributions=attributions, offsets=offsets
+        )
         df = df.with_columns(pl.lit(label).alias("label"))
         dfs.append(df)
     df = pl.concat(dfs)

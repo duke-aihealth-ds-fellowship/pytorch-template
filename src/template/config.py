@@ -5,14 +5,27 @@ import torch
 from pydantic import BaseModel
 
 
+class MainConfig(BaseModel):
+    seed: int
+    dev_run: bool
+    regenerate: bool
+    tune: bool
+    use_best: bool
+    train: bool
+    evaluate: bool
+    importance: bool
+    plot: bool
+    compile: bool
+    data: Path
+
+
 class TokenizerConfig(BaseModel):
-    path: str
+    path: Path
     vocab_size: int
     max_length: int
 
 
 class DatasetConfig(BaseModel):
-    name: str
     path: str
     train_size: float
     stratify: str
@@ -33,6 +46,11 @@ class ModelConfig(BaseModel):
     output_dim: int = -1  # set at run time
 
 
+class LossConfig(BaseModel):
+    ignore_index: int
+    reduction: str
+
+
 class OptimizerConfig(BaseModel):
     lr: float
     momentum: float
@@ -41,9 +59,7 @@ class OptimizerConfig(BaseModel):
 
 
 class SchedulerConfig(BaseModel):
-    T_0: int
-    T_mult: int
-    eta_min: float
+    gamma: float
 
 
 class TrainerConfig(BaseModel):
@@ -56,10 +72,10 @@ class TunerConfig(BaseModel):
     n_trials: int
     direction: str
     checkpoint: Path
-    hparams_path: Path
 
 
 class HParamsConfig(BaseModel):
+    path: Path
     max_epochs: dict
     hidden_dim: dict
     lr: dict
@@ -67,8 +83,8 @@ class HParamsConfig(BaseModel):
 
 
 class EvaluatorConfig(BaseModel):
-    n_bootstraps: int
     path: Path
+    n_bootstraps: int
 
 
 class AttributionConfig(BaseModel):
@@ -77,11 +93,11 @@ class AttributionConfig(BaseModel):
 
 
 class PlotConfig(BaseModel):
-    path: str
+    path: Path
+    importance: Path
     style: Literal["white", "dark", "whitegrid", "darkgrid"]
     font_scale: float
     palette: str
-    importance: str
 
 
 def get_device() -> str:
@@ -94,21 +110,12 @@ def get_device() -> str:
 
 
 class Config(BaseModel):
-    seed: int
-    dev_run: bool
-    regenerate: bool
-    tune: bool
-    use_best: bool
-    train: bool
-    evaluate: bool
-    importance: bool
-    plot: bool
-    data_dir: Path
-    compile: bool
+    main: MainConfig
     tokenizer: TokenizerConfig
     dataset: DatasetConfig
     dataloader: DataLoaderConfig
     model: ModelConfig
+    loss: LossConfig
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
     trainer: TrainerConfig
@@ -118,17 +125,26 @@ class Config(BaseModel):
     attribution: AttributionConfig
     plots: PlotConfig
 
+    def set_dev_run(self) -> None:
+        self.trainer.max_epochs = 1
+        self.tuner.n_trials = 2
+        self.hparams.max_epochs["low"] = 1
+        self.hparams.max_epochs["high"] = 1
+        self.evaluator.n_bootstraps = 3
+
     # TODO automate path construction
-    def model_post_init(self, __context: Any) -> None:
-        self.data_dir.mkdir(exist_ok=True, parents=True)
-        self.tokenizer.path = str(self.data_dir) + "/" + self.tokenizer.path
-        self.dataset.path = str(self.data_dir) + "/" + self.dataset.name
-        self.tuner.hparams_path = self.data_dir / self.tuner.hparams_path
-        self.tuner.checkpoint = self.data_dir / self.tuner.checkpoint
-        self.evaluator.path = self.data_dir / self.evaluator.path
-        self.plots.importance = str(
-            self.data_dir / self.plots.path / self.plots.importance
-        )
-        self.attribution.path = self.data_dir / self.attribution.path
+    def init_paths(self) -> None:
+        self.main.data.mkdir(exist_ok=True, parents=True)
+        self.tokenizer.path = self.main.data / self.tokenizer.path
+        self.hparams.path = self.main.data / self.hparams.path
+        self.tuner.checkpoint = self.main.data / self.tuner.checkpoint
+        self.evaluator.path = self.main.data / self.evaluator.path
+        self.plots.importance = self.main.data / self.plots.path / self.plots.importance
+        self.attribution.path = self.main.data / self.attribution.path
         self.model.vocab_size = self.tokenizer.vocab_size
         self.trainer.device = get_device()
+
+    def model_post_init(self, __context: Any) -> None:
+        self.init_paths()
+        if self.main.dev_run:
+            self.set_dev_run()

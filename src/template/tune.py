@@ -32,7 +32,7 @@ class Objective:
         trainer.train(self.loaders.train, self.loaders.val)
         if trainer.eval_loss < self.best_eval_loss:
             self.best_eval_loss = trainer.eval_loss
-            with open(self.cfg.tuner.hparams_path, "w") as f:
+            with open(self.cfg.hparams.path, "w") as f:
                 json.dump(hyperparams, f)
             torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
         return trainer.eval_loss
@@ -54,17 +54,17 @@ def make_study(cfg: Config, sampler: optuna.samplers.BaseSampler) -> optuna.stud
 def tune_hyperparameters(loaders: DataLoaders, cfg: Config):
     objective = Objective(cfg=cfg, loaders=loaders)
     half_trials = cfg.tuner.n_trials // 2
-    sampler = QMCSampler(seed=cfg.seed)
+    sampler = QMCSampler(seed=cfg.main.seed)
     study = make_study(cfg=cfg, sampler=sampler)
     study.optimize(func=objective, n_trials=half_trials)
-    study.sampler = TPESampler(multivariate=True, seed=cfg.seed)
+    study.sampler = TPESampler(multivariate=True, seed=cfg.main.seed)
     study.optimize(func=objective, n_trials=half_trials)
     print("Best hyperparameters:")
     print(json.dumps(study.best_params, indent=4))
 
 
 def load_best_checkpoint(cfg: Config, model_class):
-    with open(cfg.tuner.hparams_path, "r") as file:
+    with open(cfg.hparams.path, "r") as file:
         hyperparams = json.load(file)
     cfg = set_hyperparameters(cfg=cfg, **hyperparams)
     with torch.device("meta"):

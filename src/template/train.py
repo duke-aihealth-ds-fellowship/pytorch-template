@@ -4,7 +4,7 @@ from typing import Callable
 import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, LRScheduler
+from torch.optim.lr_scheduler import ExponentialLR, LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.optim.sgd import SGD
 from torch.utils.data import DataLoader
@@ -51,10 +51,10 @@ class Trainer:
 
     def train_epoch(self, loader: DataLoader):
         self.model.train()
-        train_loss = 0
+        loss = 0
         for step, batch in enumerate(loader, start=1):
-            train_loss += self.train_step(batch)
-            self.train_loss = train_loss / step
+            loss += self.train_step(batch)
+            self.train_loss = loss / step
             self.update_progress()
         self.scheduler.step()
 
@@ -67,29 +67,30 @@ class Trainer:
     @torch.no_grad()
     def evaluate(self, loader: DataLoader) -> float:
         self.model.eval()
-        eval_loss = 0
+        loss = 0
         for batch in loader:
-            eval_loss += self.evaluate_step(batch)
-        eval_loss /= len(loader)
-        return eval_loss
+            loss += self.evaluate_step(batch)
+        self.eval_loss = loss / len(loader)
+        return self.eval_loss
 
     def update_progress(self):
         lr = self.scheduler.get_last_lr()[0]
-        postfix = (
-            f"Epoch {self.epoch}, Train loss: {self.train_loss:.4f}, "
-            f"Eval loss: {self.eval_loss:.4f}, lr: {lr:.2e}"
-        )
+        postfix = f"Epoch {self.epoch}, lr: {lr:.4e}, Train loss: {self.train_loss:.4f}"
+        if self.eval_loss < float("inf"):
+            postfix += f", Eval loss: {self.eval_loss:.4f}"
         self.progress_bar.set_postfix_str(postfix)
         self.progress_bar.update()
 
-    def train(self, train_loader: DataLoader, eval_loader: DataLoader) -> float:
+    def train(
+        self, train_loader: DataLoader, eval_loader: DataLoader | None = None
+    ) -> float:
         num_steps = self.max_epochs * len(train_loader)
         self.progress_bar = tqdm(total=num_steps, desc="Training steps")
-        self.eval_loss = self.evaluate(loader=eval_loader)
-        for epoch in range(self.max_epochs):
+        for epoch in range(1, self.max_epochs + 1):
             self.epoch = epoch
             self.train_epoch(train_loader)
-            self.eval_loss = self.evaluate(loader=eval_loader)
+            if eval_loader is not None:
+                self.evaluate(loader=eval_loader)
             self.update_progress()
         return self.train_loss
 
@@ -106,12 +107,12 @@ class Trainer:
 
 def make_trainer(cfg: Config) -> Trainer:
     model = EmbeddingModel(**cfg.model.model_dump())
-    if cfg.compile:
+    if cfg.main.compile:
         model = torch.compile(model)
     model.to(cfg.trainer.device)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(**cfg.loss.model_dump())
     optimizer = SGD(model.parameters(), **cfg.optimizer.model_dump())
-    scheduler = CosineAnnealingWarmRestarts(optimizer, **cfg.scheduler.model_dump())
+    scheduler = ExponentialLR(optimizer, **cfg.scheduler.model_dump())
     return Trainer(
         model=model,
         criterion=criterion,
@@ -122,8 +123,8 @@ def make_trainer(cfg: Config) -> Trainer:
 
 
 def train_model(loaders: DataLoaders, cfg: Config):
-    if cfg.use_best:
-        with open(cfg.tuner.hparams_path, "r") as file:
+    if cfg.main.use_best:
+        with open(cfg.hparams.path, "r") as file:
             hyperparameters = json.load(file)
         cfg = set_hyperparameters(cfg=cfg, **hyperparameters)
         trainer = make_trainer(cfg=cfg)

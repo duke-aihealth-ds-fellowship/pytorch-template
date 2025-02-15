@@ -62,6 +62,15 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 - Modular is better than monolithic
 - Practicality over purity
 
+## Style guide
+
+- Default `ruff` formatting
+- Type hints are required
+- Names should be descriptive, concise, and consistent
+- Variable names are snake_case
+- Class names are CamelCase
+- Constants are UPPER_CASE
+
 ### TODO
 
 - Logging
@@ -69,3 +78,4 @@ All arguments that affect program behavior are consolidated in `config.toml`. Th
 - Learning rate schedulers
 - Tokenization
 - More toy datasets modalities, e.g., images, tabular, etc.
+- Save configuration after the final model is trained

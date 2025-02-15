@@ -54,5 +54,4 @@ def tokenize_dataset(tokenizer, splits: DatasetDict, cfg: Config) -> DatasetDict
     splits = splits.map(tokenize_text, batched=True)
     columns = ["label", "input_ids", "attention_mask"]
     splits = splits.with_format("torch", columns=columns)
-    splits.save_to_disk(cfg.dataset.path)
     return splits

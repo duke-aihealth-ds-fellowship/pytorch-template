@@ -1,23 +1,23 @@
-seed = 42         # Random seed for reproducibility
-dev_run = false   # Run a small subset of the data for debugging
-regenerate = false # Regenerate the tokenized dataset
-tune = false      # tune hyperparameters
-use_best = true   # use best hyperparameters found during tuning
-train = true      # train model
-evaluate = true   # Generate performance metrics from the test set
-importance = true # Compute feature importance
-plot = true       # Generate plots/figures
-data_dir = "data/"
-compile = false   # Compile the model
+[main]
+seed = 42           # Random seed for reproducibility
+dev_run = false     # Run a small subset of the data for debugging
+regenerate = true  # Regenerate the tokenized dataset
+tune = true        # tune hyperparameters
+use_best = true     # use best hyperparameters found during tuning
+train = true       # train model
+evaluate = true    # Generate performance metrics from the test set
+importance = true   # Compute feature importance
+plot = true        # Generate plots/figures
+compile = false     # Compile the Torch model
+data = "data/"      # Path to the data directory
 
 [tokenizer]
 path = "tokenizer"
-vocab_size = 30_000
+vocab_size = 10_000
 max_length = 265
 
 [dataset]
-name = "ag_news"
-path = "ag_news/"
+path = "rotten_tomatoes"
 train_size = 0.8
 stratify = "label"
 
@@ -32,6 +32,10 @@ compile = false
 embedding_dim = 256
 hidden_dim = 256
 
+[loss]
+ignore_index = -100
+reduction = "mean"
+
 [optimizer]
 lr = 1e-5
 momentum = 0.9
@@ -39,21 +43,19 @@ weight_decay = 1e-6
 fused = true
 
 [scheduler]
-T_0 = 0
-T_mult = 1
-eta_min = 0.0
+gamma = 0.9
 
 [trainer]
-max_epochs = 4
+max_epochs = 5
 gradient_clip = 1.0
 
 [tuner]
 n_trials = 32
 direction = "minimize"
 checkpoint = "checkpoint.pt"
-hparams_path = "hyperparameters.json"
 
 [hparams]
+path = "hyperparameters.json"
 [hparams.max_epochs]
 name = "max_epochs"
 low = 1
@@ -74,12 +76,12 @@ high = 1e-2
 log = true
 
 [evaluator]
-n_bootstraps = 3
+n_bootstraps = 100
 path = "metrics.parquet"
 
 [attribution]
 path = "attribution.parquet"
-num_samples = 1024
+num_samples = 32
 
 
 [plots]
