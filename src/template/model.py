@@ -1,5 +1,5 @@
-import torch
 import torch.nn as nn
+from torch import Tensor
 
 from template.config import Config
 
@@ -36,7 +36,7 @@ class EmbeddingModel(nn.Module):
             nn.Linear(in_features=hidden_dim, out_features=output_dim),
         )
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: Tensor):
         x = self.embeddings(x)
         x = x.mean(dim=1)
         return self.mlp(x)

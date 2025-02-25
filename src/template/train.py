@@ -3,6 +3,7 @@ from typing import Callable
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import ExponentialLR, LRScheduler
 from torch.optim.optimizer import Optimizer
@@ -45,10 +46,14 @@ class Trainer:
         self.progress_bar.set_postfix_str(postfix)
         self.progress_bar.update()
 
-    def train_step(self, batch: dict[str, torch.Tensor]) -> float:
+    # TODO unused
+    def to_device(self, batch: tuple[Tensor, ...]) -> tuple[Tensor, ...]:
+        return tuple(tensor.to(self.device) for tensor in batch)
+
+    def train_step(self, batch: dict[str, Tensor]) -> float:
         inputs = batch["input_ids"].to(self.device)
         labels = batch["labels"].to(self.device)
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=True)
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         loss.backward()
@@ -78,7 +83,7 @@ class Trainer:
         return self.train_loss
 
     @torch.no_grad()
-    def evaluate_step(self, batch: dict[str, torch.Tensor]) -> float:
+    def evaluate_step(self, batch: dict[str, Tensor]) -> float:
         inputs = batch["input_ids"].to(self.device)
         labels = batch["labels"].to(self.device)
         outputs = self.model(inputs)
@@ -94,7 +99,7 @@ class Trainer:
         return self.eval_loss
 
     @torch.no_grad()
-    def predict(self, loader: DataLoader) -> list[torch.Tensor]:
+    def predict(self, loader: DataLoader) -> list[Tensor]:
         self.model.eval()
         predictions = []
         for batch in loader:

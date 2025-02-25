@@ -1,5 +1,6 @@
 import polars as pl
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection
 from torchmetrics.classification import (
@@ -35,7 +36,7 @@ def make_metrics(cfg: Config):
     return MetricCollection(metrics).to(cfg.trainer.device)
 
 
-def format_results(results: dict[str, torch.Tensor]) -> pl.DataFrame:
+def format_results(results: dict[str, Tensor]) -> pl.DataFrame:
     data = {k.split("_")[0]: v.cpu().tolist() for k, v in results.items()}
     df = pl.DataFrame(data)
     df = df.unpivot(variable_name="metric")

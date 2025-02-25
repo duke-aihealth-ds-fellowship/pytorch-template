@@ -1,6 +1,6 @@
 import numpy as np
 import polars as pl
-import torch
+from torch import Tensor
 from captum.attr import (
     LayerGradientShap,
     configure_interpretable_embedding_layer,
@@ -14,9 +14,7 @@ from template.model import EmbeddingModel
 from template.tune import load_best_checkpoint
 
 
-def make_attributions(
-    target: int, inputs: torch.Tensor, baselines: torch.Tensor, cfg: Config
-):
+def make_attributions(target: int, inputs: Tensor, baselines: Tensor, cfg: Config):
     model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
     inputs = inputs.to(cfg.trainer.device)
     baselines = baselines.to(cfg.trainer.device)
@@ -43,8 +41,8 @@ def make_attributions(
 def format_attributions(
     text: list[str],
     word_ids: list[int],  # FIXME unused
-    attributions: torch.Tensor,
-    offsets: torch.Tensor,
+    attributions: Tensor,
+    offsets: Tensor,
 ):
     batch_size, seq_len = attributions.size()
     flat_offsets = offsets.flatten(0, 1).cpu().numpy()
