@@ -9,6 +9,8 @@ from torch.optim.lr_scheduler import ExponentialLR, LinearLR, LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.optim.sgd import SGD
 from torch.utils.data import DataLoader
+from torchmetrics import Metric
+from torchmetrics.classification import Accuracy
 from tqdm import tqdm
 
 from template.config import Config
@@ -26,6 +28,7 @@ class Trainer:
         optimizer: Optimizer,
         warmup_scheduler: LRScheduler,
         scheduler: LRScheduler,
+        metric: Metric,
         max_epochs: int,
         gradient_clip: float,
         device: str,
@@ -37,19 +40,23 @@ class Trainer:
         self.optimizer = optimizer
         self.warmup_scheduler = warmup_scheduler
         self.scheduler = scheduler
+        self.metric = metric
         self.max_epochs = max_epochs
         self.gradient_clip = gradient_clip
         self.device = device
         self.train_loss = float("inf")
         self.eval_loss = float("inf")
+        self.eval_metric = 0.0
         num_steps = max_epochs * len(train_loader)
         self.progress_bar = tqdm(total=num_steps, desc="Train steps")
 
     def update_progress(self):
         lr = self.scheduler.get_last_lr()[0]
-        postfix = f"lr: {lr:.4e}, Train loss: {self.train_loss:.4f}"
-        if self.eval_loss < float("inf"):
-            postfix += f", Eval loss: {self.eval_loss:.4f}"
+        postfix = (
+            f"lr: {lr:.4e}, Train loss: {self.train_loss:.4f}"
+            f", Eval loss: {self.eval_loss:.4f}"
+            f", Eval metric: {self.eval_metric:.4f}"
+        )
         self.progress_bar.set_postfix_str(postfix)
         self.progress_bar.update()
 
@@ -89,6 +96,7 @@ class Trainer:
     def evaluate_step(self, batch: dict[str, Tensor]) -> float:
         inputs, labels = self.to_device(batch, keys=["input_ids", "labels"])
         outputs = self.model(inputs)
+        self.metric.update(outputs, labels)
         return self.criterion(outputs, labels).item()
 
     @torch.no_grad()
@@ -97,6 +105,8 @@ class Trainer:
         loss = 0.0
         for batch in self.eval_loader:
             loss += self.evaluate_step(batch)
+        self.eval_metric = self.metric.compute()
+        self.metric.reset()
         self.eval_loss = loss / len(self.eval_loader)
         return self.eval_loss
 
@@ -124,6 +134,8 @@ def make_trainer(
         optimizer, start_factor=0.1, end_factor=1.0, total_iters=len(train_loader)
     )
     scheduler = ExponentialLR(optimizer, **cfg.scheduler.model_dump())
+    metric = Accuracy(task="multiclass", num_classes=cfg.model.output_dim)
+    metric.to(cfg.trainer.device)
     return Trainer(
         train_loader=train_loader,
         eval_loader=eval_loader,
@@ -132,6 +144,7 @@ def make_trainer(
         optimizer=optimizer,
         warmup_scheduler=warmup_scheduler,
         scheduler=scheduler,
+        metric=metric,
         **cfg.trainer.model_dump(),
     )
 

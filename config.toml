@@ -5,9 +5,9 @@ regenerate = false  # Regenerate the tokenized dataset
 tune = true        # tune the model hyperparameters
 use_best = true     # use the best hyperparameters found during tuning
 train = true       # train the model
-evaluate = true    # Generate test set model performance metrics 
-importance = true   # Compute feature importance
-plot = true        # Generate plots/figures
+evaluate = false    # Generate test set model performance metrics 
+importance = false   # Compute feature importance
+plot = false        # Generate plots/figures
 compile = false     # Compile the Torch model
 data = "data/"      # Path to the data directory
 
@@ -38,7 +38,7 @@ ignore_index = -100
 reduction = "mean"
 
 [optimizer]
-lr = 1e-5
+lr = 1e-4
 momentum = 0.9
 nesterov = true
 weight_decay = 1e-6
@@ -52,7 +52,7 @@ max_epochs = 5
 gradient_clip = 1.0
 
 [tuner]
-n_trials = 2
+n_trials = 16
 direction = "minimize"
 checkpoint = "checkpoint.pt"
 
@@ -60,16 +60,16 @@ checkpoint = "checkpoint.pt"
 path = "hyperparameters.json"
 [hparams.max_epochs]
 name = "max_epochs"
-low = 1
-high = 10
+low = 2
+high = 20
 [hparams.hidden_dim]
 name = "hidden_dim"
 low = 6 # 2^6 = 64
 high = 10 # 2^10 = 1024
 [hparams.lr]
 name = "lr"
-low = 1e-5
-high = 1e-3
+low = 1e-4
+high = 1e-2
 log = true
 [hparams.weight_decay]
 name = "weight_decay"
