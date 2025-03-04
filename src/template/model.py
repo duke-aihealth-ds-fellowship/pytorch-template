@@ -141,9 +141,19 @@ class Transformer(nn.Module):
             nn.Linear(in_features=hidden_dim, out_features=output_dim),
         )
 
+    def masked_mean_pool(self, x: Tensor, mask: Tensor):
+        # x: (B, L, E)
+        # mask: (B, L)
+        expanded_mask = mask.unsqueeze(-1)  # (B, L, 1)
+        masked_sum = (x * expanded_mask).sum(dim=1)  # (B, E)
+        token_count = expanded_mask.sum(dim=1).clamp(min=1.0)  # (B, 1)
+        x = masked_sum / token_count
+        return x
+
     def forward(self, x: Tensor):
+        padding_mask = x == 0
         x = self.embeddings(x)
         for transformer_block in self.transformer_blocks:
             x = transformer_block(x)
-        x = x.mean(dim=1)
+        x = self.masked_mean_pool(x, padding_mask)
         return self.mlp(x)
