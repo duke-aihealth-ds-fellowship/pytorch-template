@@ -10,7 +10,7 @@ from torch.optim.optimizer import Optimizer
 from torch.optim.sgd import SGD
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from torchmetrics.classification import Accuracy
+from torchmetrics.classification import MulticlassAccuracy
 from tqdm import tqdm
 
 from template.config import Config
@@ -134,7 +134,9 @@ def make_trainer(
         optimizer, start_factor=0.1, end_factor=1.0, total_iters=len(train_loader)
     )
     scheduler = ExponentialLR(optimizer, **cfg.scheduler.model_dump())
-    metric = Accuracy(task="multiclass", num_classes=cfg.model.output_dim)
+    metric = MulticlassAccuracy(
+        num_classes=cfg.model.output_dim, ignore_index=cfg.loss.ignore_index
+    )
     metric.to(cfg.trainer.device)
     return Trainer(
         train_loader=train_loader,
