@@ -63,7 +63,9 @@ class MultiHeadAttention(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         # (B, L, E) -> (B, H, L, D)
         x = x.unflatten(-1, [self.num_heads, self.head_dim]).transpose(1, 2)
-        score = flex_attention(query=x, key=x, value=x, score_mod=positional_encoding)
+        score = flex_attention(
+            query=x, key=x, value=x, score_mod=positional_encoding, enable_gqa=True
+        )
         # (B, H, L, D) -> (B, L, E)
         score = score.transpose(1, 2).flatten(-2)
         return score
