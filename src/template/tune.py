@@ -21,6 +21,9 @@ class Objective:
         return {
             "max_epochs": trial.suggest_int(**self.cfg.hparams.max_epochs),
             "hidden_dim": trial.suggest_int(**self.cfg.hparams.hidden_dim),
+            "num_layers": trial.suggest_int(**self.cfg.hparams.num_layers),
+            "num_heads": trial.suggest_int(**self.cfg.hparams.num_heads),
+            "dropout": trial.suggest_float(**self.cfg.hparams.dropout),
             "lr": trial.suggest_float(**self.cfg.hparams.lr),
             "weight_decay": trial.suggest_float(**self.cfg.hparams.weight_decay),
         }

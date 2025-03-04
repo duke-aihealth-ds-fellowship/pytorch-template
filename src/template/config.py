@@ -44,6 +44,7 @@ class ModelConfig(BaseModel):
     hidden_dim: int
     num_heads: int
     num_layers: int
+    dropout: float
     vocab_size: int = -1  # set at run time
     padding_idx: int = -1  # set at run time
     output_dim: int = -1  # set at run time
@@ -56,10 +57,7 @@ class LossConfig(BaseModel):
 
 class OptimizerConfig(BaseModel):
     lr: float
-    # momentum: float
-    # nesterov: bool
     weight_decay: float
-    # fused: bool
 
 
 class SchedulerConfig(BaseModel):
@@ -82,6 +80,9 @@ class HParamsConfig(BaseModel):
     path: Path
     max_epochs: dict
     hidden_dim: dict
+    num_heads: dict
+    num_layers: dict
+    dropout: dict
     lr: dict
     weight_decay: dict
 
