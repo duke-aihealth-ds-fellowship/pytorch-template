@@ -12,7 +12,7 @@ from torchmetrics.wrappers import BootStrapper
 from tqdm import tqdm
 
 from template.config import Config
-from template.model import EmbeddingModel
+from template.model import Transformer
 from template.tune import load_best_checkpoint
 
 
@@ -45,7 +45,7 @@ def format_results(results: dict[str, Tensor]) -> pl.DataFrame:
 
 @torch.no_grad()
 def evaluate_model(cfg: Config, loader: DataLoader) -> pl.DataFrame:
-    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
+    model = load_best_checkpoint(cfg=cfg, model_class=Transformer)
     model.eval()
     metrics = make_metrics(cfg=cfg)
     for batch in tqdm(loader, desc="Evaluating"):

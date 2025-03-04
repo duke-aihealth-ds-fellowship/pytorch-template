@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Any, Literal
 
-import torch
 from pydantic import BaseModel
 from tomllib import load
 
@@ -43,6 +42,8 @@ class DataLoaderConfig(BaseModel):
 class ModelConfig(BaseModel):
     embedding_dim: int
     hidden_dim: int
+    num_heads: int
+    num_layers: int
     vocab_size: int = -1  # set at run time
     padding_idx: int = -1  # set at run time
     output_dim: int = -1  # set at run time
@@ -55,10 +56,10 @@ class LossConfig(BaseModel):
 
 class OptimizerConfig(BaseModel):
     lr: float
-    momentum: float
-    nesterov: bool
+    # momentum: float
+    # nesterov: bool
     weight_decay: float
-    fused: bool
+    # fused: bool
 
 
 class SchedulerConfig(BaseModel):
@@ -68,7 +69,7 @@ class SchedulerConfig(BaseModel):
 class TrainerConfig(BaseModel):
     max_epochs: int
     gradient_clip: float
-    device: str = "cpu"  # set at initialization
+    device: str
 
 
 class TunerConfig(BaseModel):
@@ -104,13 +105,13 @@ class PlotConfig(BaseModel):
     palette: str
 
 
-def get_device() -> str:
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.mps.is_available():
-        return "mps"
-    else:
-        return "cpu"
+# def get_device() -> str:
+#     if torch.cuda.is_available():
+#         return "cuda"
+#     elif torch.mps.is_available():
+#         return "mps"
+#     else:
+#         return "cpu"
 
 
 class Config(BaseModel):
@@ -151,7 +152,7 @@ class Config(BaseModel):
         self.model.vocab_size = self.tokenizer.vocab_size
 
     def model_post_init(self, __context: Any) -> None:
-        self.trainer.device = get_device()
+        # self.trainer.device = get_device()
         self.init_paths()
         if self.main.dev_run:
             self.set_dev_run()

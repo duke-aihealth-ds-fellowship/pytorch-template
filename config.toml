@@ -32,6 +32,8 @@ persistent_workers = false
 compile = false
 embedding_dim = 128
 hidden_dim = 128
+num_heads = 4
+num_layers = 2
 
 [loss]
 ignore_index = -100
@@ -39,10 +41,7 @@ reduction = "mean"
 
 [optimizer]
 lr = 1e-4
-momentum = 0.9
-nesterov = true
 weight_decay = 1e-6
-fused = true
 
 [scheduler]
 gamma = 0.9
@@ -50,6 +49,7 @@ gamma = 0.9
 [trainer]
 max_epochs = 5
 gradient_clip = 1.0
+device = "cpu"
 
 [tuner]
 n_trials = 16

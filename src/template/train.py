@@ -6,8 +6,8 @@ import torch.nn as nn
 from torch import Tensor
 from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import ExponentialLR, LinearLR, LRScheduler
+from torch.optim.nadam import NAdam
 from torch.optim.optimizer import Optimizer
-from torch.optim.sgd import SGD
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from torchmetrics.classification import MulticlassAccuracy
@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from template.config import Config
 from template.dataset import DataLoaders
-from template.model import EmbeddingModel, set_hyperparameters
+from template.model import Transformer, set_hyperparameters
 
 
 class Trainer:
@@ -86,7 +86,7 @@ class Trainer:
         self.scheduler.step()
 
     def train(self) -> float:
-        for _ in range(1, self.max_epochs + 1):
+        for _ in range(self.max_epochs):
             self.train_epoch()
             self.evaluate()
         self.progress_bar.close()
@@ -124,12 +124,14 @@ class Trainer:
 def make_trainer(
     train_loader: DataLoader, eval_loader: DataLoader, cfg: Config
 ) -> Trainer:
-    model = EmbeddingModel(**cfg.model.model_dump())
+    model = Transformer(**cfg.model.model_dump())
     if cfg.main.compile:
         model = torch.compile(model)
     model.to(cfg.trainer.device)
     criterion = nn.CrossEntropyLoss(**cfg.loss.model_dump())
-    optimizer = SGD(model.parameters(), **cfg.optimizer.model_dump())
+    optimizer = NAdam(
+        model.parameters(), **cfg.optimizer.model_dump(), decoupled_weight_decay=True
+    )
     warmup_scheduler = LinearLR(
         optimizer, start_factor=0.1, end_factor=1.0, total_iters=len(train_loader)
     )

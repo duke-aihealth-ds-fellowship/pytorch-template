@@ -1,21 +1,21 @@
 import numpy as np
 import polars as pl
-from torch import Tensor
 from captum.attr import (
     LayerGradientShap,
     configure_interpretable_embedding_layer,
     remove_interpretable_embedding_layer,
 )
+from torch import Tensor
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerFast
 
 from template.config import Config
-from template.model import EmbeddingModel
+from template.model import Transformer
 from template.tune import load_best_checkpoint
 
 
 def make_attributions(target: int, inputs: Tensor, baselines: Tensor, cfg: Config):
-    model = load_best_checkpoint(cfg=cfg, model_class=EmbeddingModel)
+    model = load_best_checkpoint(cfg=cfg, model_class=Transformer)
     inputs = inputs.to(cfg.trainer.device)
     baselines = baselines.to(cfg.trainer.device)
     model.to(cfg.trainer.device)
