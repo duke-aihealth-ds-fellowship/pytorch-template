@@ -1,7 +1,7 @@
 [main]
 seed = 42           # Random seed for reproducibility
 dev_run = false     # Run a small subset of the data for debugging
-regenerate = true  # Regenerate the tokenized dataset
+regenerate = false  # Regenerate the tokenized dataset
 tune = true        # tune the model hyperparameters
 use_best = true     # use the best hyperparameters found during tuning
 train = true       # train the model
@@ -13,8 +13,9 @@ data = "data/"      # Path to the data directory
 
 [tokenizer]
 path = "tokenizer"
-vocab_size = 2_000 # increase for larger corpus
-max_length = 265
+vocab_size = 4096 # increase for larger corpus
+max_length = 512
+pad_token = "<|endoftext|>"
 
 [dataset]
 path = "rotten_tomatoes"
@@ -39,6 +40,7 @@ reduction = "mean"
 [optimizer]
 lr = 1e-5
 momentum = 0.9
+nesterov = true
 weight_decay = 1e-6
 fused = true
 
@@ -50,7 +52,7 @@ max_epochs = 5
 gradient_clip = 1.0
 
 [tuner]
-n_trials = 32
+n_trials = 2
 direction = "minimize"
 checkpoint = "checkpoint.pt"
 

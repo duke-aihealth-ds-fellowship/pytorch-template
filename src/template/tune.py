@@ -28,15 +28,14 @@ class Objective:
     def __call__(self, trial: Trial) -> float:
         hyperparams = self.sample_hyperparameters(trial=trial)
         cfg = set_hyperparameters(cfg=self.cfg, **hyperparams)
-        trainer = make_trainer(cfg=cfg)
-        trainer.train(self.loaders.train)
-        eval_loss = trainer.evaluate(self.loaders.val)
-        if eval_loss < self.best_eval_loss:
-            self.best_eval_loss = eval_loss
+        trainer = make_trainer(self.loaders.train, self.loaders.val, cfg=cfg)
+        trainer.train()
+        if trainer.eval_loss < self.best_eval_loss:
+            self.best_eval_loss = trainer.eval_loss
             with open(self.cfg.hparams.path, "w") as f:
                 json.dump(hyperparams, f)
             torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
-        return eval_loss
+        return trainer.eval_loss
 
 
 def make_study(cfg: Config, sampler: optuna.samplers.BaseSampler) -> optuna.study.Study:

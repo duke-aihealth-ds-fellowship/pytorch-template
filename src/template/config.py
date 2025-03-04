@@ -24,6 +24,7 @@ class TokenizerConfig(BaseModel):
     path: Path
     vocab_size: int
     max_length: int
+    pad_token: str
 
 
 class DatasetConfig(BaseModel):
@@ -55,6 +56,7 @@ class LossConfig(BaseModel):
 class OptimizerConfig(BaseModel):
     lr: float
     momentum: float
+    nesterov: bool
     weight_decay: float
     fused: bool
 

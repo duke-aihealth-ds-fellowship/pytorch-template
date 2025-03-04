@@ -16,23 +16,28 @@ from template.config import Config
 from template.tokenizer import make_tokenizer, tokenize_dataset
 
 
-def subset_splits(dataset: Dataset, batch_size: int, seed: int):
+def subset_splits(dataset: Dataset, size: int, seed: int):
     dataset = dataset.shuffle(seed=seed)
-    train = dataset.select(range(batch_size))
-    val = dataset.select(range(batch_size, 2 * batch_size))
-    test = dataset.select(range(2 * batch_size, 3 * batch_size))
+    train = dataset.select(range(size))
+    val = dataset.select(range(size, 2 * size))
+    test = dataset.select(range(2 * size, 3 * size))
     return DatasetDict({"train": train, "val": val, "test": test})
 
 
-def make_splits(cfg: Config) -> DatasetDict:
+def get_dataset(cfg: Config) -> Dataset:
     ds = load_dataset(cfg.dataset.path)
     ds = cast(DatasetDict, ds)
     num_classes = len(ds["train"].unique("label"))
     ds.cast_column("label", ClassLabel(num_classes=num_classes))
     splits = [split for split in ds.values()]
     ds = concatenate_datasets(splits)
+    return ds
+
+
+def make_splits(cfg: Config) -> DatasetDict:
+    ds = get_dataset(cfg=cfg)
     if cfg.main.dev_run:
-        splits = subset_splits(ds, cfg.dataloader.batch_size, cfg.main.seed)
+        splits = subset_splits(ds, size=cfg.dataloader.batch_size, seed=cfg.main.seed)
     else:
         split = partial(
             Dataset.train_test_split,
@@ -56,11 +61,11 @@ def get_splits(cfg: Config) -> DatasetDict:
     dataset_path = cfg.main.data / cfg.dataset.path
     if not dataset_path.exists() or cfg.main.regenerate:
         splits = make_splits(cfg=cfg)
-        tokenizer = make_tokenizer(cfg=cfg, dataset=splits["train"])
+        tokenizer = make_tokenizer(text=splits["train"]["text"], cfg=cfg)
         splits = tokenize_dataset(tokenizer=tokenizer, splits=splits, cfg=cfg)
         splits.save_to_disk(str(dataset_path))
     else:
-        splits = DatasetDict.load_from_disk(dataset_path)
+        splits = DatasetDict.load_from_disk(str(dataset_path))
     return splits
 
 

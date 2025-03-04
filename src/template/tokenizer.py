@@ -1,43 +1,25 @@
+# type: ignore
 from functools import partial
 
-from datasets import Dataset, DatasetDict
-from tokenizers import Tokenizer, decoders, pre_tokenizers, processors
-from tokenizers.models import BPE
-from tokenizers.processors import TemplateProcessing
-from tokenizers.trainers import BpeTrainer
+from datasets import DatasetDict
+from tokenizers import Tokenizer, decoders, models, pre_tokenizers, processors, trainers
 from transformers import PreTrainedTokenizerFast
 
 from template.config import Config
 
 
-def make_tokenizer(dataset: Dataset, cfg: Config) -> PreTrainedTokenizerFast:
-    tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
-    tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)  # type: ignore
-    special_tokens = ["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"]
-    unk_token, cls_token, sep_token, pad_token, mask_token = special_tokens
-    trainer = BpeTrainer(
-        vocab_size=cfg.tokenizer.vocab_size,  # type: ignore
-        special_tokens=special_tokens,  # type: ignore
+def make_tokenizer(text, cfg: Config) -> PreTrainedTokenizerFast:
+    tokenizer = Tokenizer(models.BPE())
+    tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=True)
+    trainer = trainers.BpeTrainer(
+        vocab_size=cfg.tokenizer.vocab_size,
+        special_tokens=[cfg.tokenizer.pad_token],
     )
-    tokenizer.train_from_iterator(dataset["text"], trainer, length=len(dataset))
-    tokenizer.post_processor = processors.ByteLevel(trim_offsets=False)  # type: ignore
-    tokenizer.decoder = decoders.ByteLevel()  # type: ignore
-    cls_token_id = tokenizer.token_to_id(cls_token)
-    sep_token_id = tokenizer.token_to_id(sep_token)
-    tokenizer.post_processor = TemplateProcessing(
-        single=f"{cls_token} $A {sep_token}",
-        special_tokens=[(cls_token, cls_token_id), (sep_token, sep_token_id)],
-    )  # type: ignore
+    tokenizer.train_from_iterator(text, trainer=trainer, length=len(text))
+    tokenizer.post_processor = processors.ByteLevel(trim_offsets=True)
+    tokenizer.decoder = decoders.ByteLevel()
     tokenizer = PreTrainedTokenizerFast(
-        tokenizer_object=tokenizer,
-        bos_token=cls_token,
-        eos_token=sep_token,
-        unk_token=unk_token,
-        pad_token=pad_token,
-        cls_token=cls_token,
-        sep_token=sep_token,
-        mask_token=mask_token,
-        padding_side="right",
+        tokenizer_object=tokenizer, pad_token=cfg.tokenizer.pad_token
     )
     tokenizer.save_pretrained(cfg.tokenizer.path)
     return tokenizer
