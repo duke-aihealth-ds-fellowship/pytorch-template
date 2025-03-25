@@ -1,19 +1,19 @@
 [main]
-seed = 42           # Random seed for reproducibility
-dev_run = false     # Run a small subset of the data for debugging
-regenerate = false  # Regenerate the tokenized dataset
-tune = true        # tune the model hyperparameters
-use_best = true     # use the best hyperparameters found during tuning
-train = true       # train the model
-evaluate = false    # Generate test set model performance metrics 
-importance = false   # Compute feature importance
-plot = false        # Generate plots/figures
-compile = false     # Compile the Torch model
-data = "data/"      # Path to the data directory
+seed = 42          # Random seed for reproducibility
+dev_run = false    # Run a small subset of the data for debugging
+regenerate = false # Regenerate the tokenized dataset
+tune = false       # tune the model hyperparameters
+use_best = false   # use the best hyperparameters found during tuning
+train = false      # train the model
+evaluate = false   # Generate test set model performance metrics 
+importance = true  # Compute feature importance
+plot = false       # Generate plots/figures
+compile = false    # Compile the Torch model
+data = "data/"     # Path to the data directory
 
 [tokenizer]
 path = "tokenizer"
-vocab_size = 4096 # increase for larger corpus
+vocab_size = 4096           # increase for larger corpus
 max_length = 512
 pad_token = "<|endoftext|>"
 
@@ -23,17 +23,17 @@ train_size = 0.8
 stratify = "label"
 
 [dataloader]
-batch_size = 64
-num_workers = 0   # > 1 for multiprocessing
+batch_size = 32
+num_workers = 0            # > 1 for multiprocessing
 pin_memory = true
 persistent_workers = false
 
 [model]
 compile = false
 embedding_dim = 128
-hidden_dim = 128
+hidden_dim = 256
 num_heads = 4
-num_layers = 2
+num_layers = 3
 dropout = 0.1
 
 [loss]
@@ -65,8 +65,8 @@ low = 2
 high = 20
 [hparams.hidden_dim]
 name = "hidden_dim"
-low = 6 # 2^6 = 64
-high = 10 # 2^10 = 1024
+low = 6             # 2^6 = 64
+high = 10           # 2^10 = 1024
 [hparams.num_heads]
 name = "num_heads"
 low = 1
@@ -74,7 +74,7 @@ high = 3
 [hparams.num_layers]
 name = "num_layers"
 low = 1
-high = 4
+high = 6
 [hparams.dropout]
 name = "dropout"
 low = 0.0

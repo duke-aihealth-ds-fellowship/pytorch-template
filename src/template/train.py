@@ -51,11 +51,11 @@ class Trainer:
         self.progress_bar = tqdm(total=num_steps, desc="Train steps")
 
     def update_progress(self):
-        lr = self.scheduler.get_last_lr()[0]
         postfix = (
-            f"lr: {lr:.4e}, Train loss: {self.train_loss:.4f}"
-            f", Eval loss: {self.eval_loss:.4f}"
-            f", Eval metric: {self.eval_metric:.4f}"
+            f"lr: {self.optimizer.param_groups[0]['lr']:.2e}, "
+            f"Train loss: {self.train_loss:.3f}, "
+            f"Eval loss: {self.eval_loss:.3f}, "
+            f", Eval metric: {self.eval_metric:.3f}"
         )
         self.progress_bar.set_postfix_str(postfix)
         self.progress_bar.update()

@@ -5,3 +5,7 @@ polars
 numpy
 optuna
 scikit-learn
+datasets
+transformers
+captum
+seaborn
