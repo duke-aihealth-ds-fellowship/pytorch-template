@@ -11,11 +11,16 @@ plot = false       # Generate plots/figures
 compile = false    # Compile the Torch model
 data = "data/"     # Path to the data directory
 
-[tokenizer]
-path = "tokenizer"
-vocab_size = 4096           # increase for larger corpus
-max_length = 512
-pad_token = "<|endoftext|>"
+[simulation]
+intercept = 0.0   # this affects the prevalence
+d_features = 2
+scale = 1.0
+n_samples = 1000
+m_timepoints = 20
+variance = 0.5
+noise = 0.05
+gamma_shape = 1.0
+gamma_rate = 1.0
 
 [dataset]
 path = "rotten_tomatoes"
@@ -29,12 +34,12 @@ pin_memory = true
 persistent_workers = false
 
 [model]
-compile = false
 embedding_dim = 128
 hidden_dim = 256
 num_heads = 4
 num_layers = 3
 dropout = 0.1
+compile = false
 
 [loss]
 ignore_index = -100

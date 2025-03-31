@@ -5,25 +5,16 @@ from pydantic import BaseModel
 from tomllib import load
 
 
-class MainConfig(BaseModel):
-    seed: int
-    dev_run: bool
-    regenerate: bool
-    tune: bool
-    use_best: bool
-    train: bool
-    evaluate: bool
-    importance: bool
-    plot: bool
-    compile: bool
-    data: Path
-
-
-class TokenizerConfig(BaseModel):
-    path: Path
-    vocab_size: int
-    max_length: int
-    pad_token: str
+class SimulationConfig(BaseModel):
+    intercept: float
+    d_features: int
+    scale: float
+    n_samples: int
+    m_timepoints: int
+    variance: float
+    noise: float
+    gamma_shape: float
+    gamma_rate: float
 
 
 class DatasetConfig(BaseModel):
@@ -40,13 +31,11 @@ class DataLoaderConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    embedding_dim: int
     hidden_dim: int
     num_heads: int
     num_layers: int
     dropout: float
-    vocab_size: int = -1  # set at run time
-    padding_idx: int = -1  # set at run time
+    compile: bool
     output_dim: int = -1  # set at run time
 
 
@@ -116,8 +105,17 @@ class PlotConfig(BaseModel):
 
 
 class Config(BaseModel):
-    main: MainConfig
-    tokenizer: TokenizerConfig
+    seed: int
+    dev_run: bool
+    regenerate: bool
+    tune: bool
+    use_best: bool
+    train: bool
+    evaluate: bool
+    importance: bool
+    plot: bool
+    compile: bool
+    data: Path
     dataset: DatasetConfig
     dataloader: DataLoaderConfig
     model: ModelConfig

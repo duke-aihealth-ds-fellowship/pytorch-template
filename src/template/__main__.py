@@ -1,7 +1,7 @@
 import torch
 
 from template.config import get_config
-from template.dataset import get_splits, make_dataloaders
+from template.dataset import get_data, make_dataloaders
 from template.evaluate import evaluate_model
 from template.importance import feature_importance
 from template.plots import plot
@@ -12,21 +12,21 @@ from template.tune import tune_hyperparameters
 def main():
     cfg = get_config()
 
-    torch.manual_seed(cfg.main.seed)
+    torch.manual_seed(cfg.seed)
     torch.set_float32_matmul_precision("high")
 
-    splits = get_splits(cfg=cfg)
-    loaders = make_dataloaders(splits=splits, cfg=cfg)
+    data = get_data(cfg=cfg)
+    loaders = make_dataloaders(data=data, cfg=cfg)
 
-    if cfg.main.tune:
+    if cfg.tune:
         tune_hyperparameters(loaders, cfg=cfg)
-    if cfg.main.train:
+    if cfg.train:
         train_model(cfg=cfg, loaders=loaders)
-    if cfg.main.evaluate:
+    if cfg.evaluate:
         evaluate_model(cfg=cfg, loader=loaders.test)
-    if cfg.main.importance:
+    if cfg.importance:
         feature_importance(cfg=cfg, loader=loaders.test)
-    if cfg.main.plot:
+    if cfg.plot:
         plot(cfg=cfg)
 
 

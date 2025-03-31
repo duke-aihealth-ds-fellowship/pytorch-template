@@ -128,6 +128,7 @@ def make_trainer(
     if cfg.main.compile:
         model = torch.compile(model)
     model.to(cfg.trainer.device)
+    # TODO criterion should change based on cfg.task
     criterion = nn.CrossEntropyLoss(**cfg.loss.model_dump())
     optimizer = NAdam(
         model.parameters(), **cfg.optimizer.model_dump(), decoupled_weight_decay=True
