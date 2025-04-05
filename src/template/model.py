@@ -67,7 +67,7 @@ class MultiHeadAttention(nn.Module):
             query=x, key=x, value=x, score_mod=positional_encoding, enable_gqa=True
         )
         # (B, H, L, D) -> (B, L, E)
-        score = score.transpose(1, 2).flatten(-2)
+        score = score.transpose(1, 2).flatten(-2)  # type: ignore
         return score
 
 

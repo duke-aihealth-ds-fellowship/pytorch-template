@@ -41,7 +41,7 @@ def get_top_k_tokens(df: pl.DataFrame, k: int) -> pl.DataFrame:
 def plot_attributions(cfg: Config):
     plt.figure()
     sns.set_theme(style=cfg.plots.style, font_scale=cfg.plots.font_scale)
-    df = pl.read_parquet(cfg.path.attributions)
+    df = pl.read_parquet(cfg.path.attribution)
     df = get_top_k_tokens(df, k=10)
     vmin = min(df["count"].to_list())
     vmax = max(df["count"].to_list())

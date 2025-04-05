@@ -1,5 +1,6 @@
 from captum.attr import GradientShap
 from torch import Tensor
+from torch.utils.data import DataLoader
 
 from template.config import Config
 from template.model import Transformer
@@ -26,5 +27,5 @@ def make_attributions(inputs: Tensor, baselines: Tensor, target: int, cfg: Confi
 
 
 # TODO:
-def feature_importance():
+def feature_importance(cfg: Config, loader: DataLoader):
     pass

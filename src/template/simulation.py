@@ -23,9 +23,9 @@ def make_parameters(
         return mean
 
 
-def make_latent_features(parameters: Tensor, n_samples: int, variance: float) -> Tensor:
+def make_latent_features(parameters: Tensor, n_samples: int, std: float) -> Tensor:
     zero = torch.zeros(parameters.size(-1))
-    covariance = torch.eye(parameters.size(-1)) * variance
+    covariance = torch.eye(parameters.size(-1)) * std**2
     mvn_i = dist.MultivariateNormal(zero, covariance)
     features = mvn_i.sample((n_samples,))
     return features
@@ -47,16 +47,16 @@ def make_linear_output(
 def make_linear_data(
     n_samples: int,
     m_timepoints: int,
+    intercept: float,
     d_features: int | list[float],
     scale: float,
     parameter_std: float,
     latent_std: float,
     observed_std: float,
-    intercept: float,
 ) -> tuple[Tensor, ...]:
     parameters = make_parameters(d_features=d_features, scale=scale, std=parameter_std)
     latent = make_latent_features(
-        parameters=d_features, n_samples=n_samples, std=latent_std
+        parameters=parameters, n_samples=n_samples, std=latent_std
     )
     observed = make_observed_features(
         latent=latent, m_timepoints=m_timepoints, std=observed_std
@@ -84,33 +84,6 @@ def make_base_tensordict(
     )
 
 
-def classification(
-    n_samples: int,
-    m_timepoints: int,
-    intercept: float,
-    d_features: int,
-    scale: float,
-    parameter_std: float,
-    latent_std: float,
-    observed_std: float,
-) -> TensorDict:
-    parameters, latent, observed, logits = make_linear_data(
-        n_samples=n_samples,
-        m_timepoints=m_timepoints,
-        d_features=d_features,
-        scale=scale,
-        parameter_std=parameter_std,
-        latent_std=latent_std,
-        observed_std=observed_std,
-        intercept=intercept,
-    )
-    probability = torch.sigmoid(logits)
-    label = torch.bernoulli(probability)
-    data = make_base_tensordict(n_samples, m_timepoints, latent, observed, parameters)
-    data["label"] = label.unsqueeze(1).expand(-1, m_timepoints)
-    return data
-
-
 def regression(
     n_samples: int,
     m_timepoints: int,
@@ -124,15 +97,43 @@ def regression(
     parameters, latent, observed, target = make_linear_data(
         n_samples=n_samples,
         m_timepoints=m_timepoints,
+        intercept=intercept,
         d_features=d_features,
         scale=scale,
         parameter_std=parameter_std,
         latent_std=latent_std,
         observed_std=observed_std,
-        intercept=intercept,
     )
     data = make_base_tensordict(n_samples, m_timepoints, latent, observed, parameters)
     data["target"] = target.unsqueeze(1).expand(-1, m_timepoints)
+    return data
+
+
+def classification(
+    n_samples: int,
+    m_timepoints: int,
+    intercept: float,
+    d_features: int,
+    scale: float,
+    parameter_std: float,
+    latent_std: float,
+    observed_std: float,
+) -> TensorDict:
+    parameters, latent, observed, logits = make_linear_data(
+        n_samples=n_samples,
+        m_timepoints=m_timepoints,
+        intercept=intercept,
+        d_features=d_features,
+        scale=scale,
+        parameter_std=parameter_std,
+        latent_std=latent_std,
+        observed_std=observed_std,
+    )
+    probability = torch.sigmoid(logits)
+    label = torch.bernoulli(probability)
+    data = make_base_tensordict(n_samples, m_timepoints, latent, observed, parameters)
+    data["probability"] = probability.unsqueeze(1).expand(-1, m_timepoints)
+    data["label"] = label.unsqueeze(1).expand(-1, m_timepoints)
     return data
 
 
@@ -151,12 +152,12 @@ def time_to_event(
     parameters, latent, observed, logits = make_linear_data(
         n_samples=n_samples,
         m_timepoints=m_timepoints,
+        intercept=intercept,
         d_features=d_features,
         scale=scale,
         parameter_std=parameter_std,
         latent_std=latent_std,
         observed_std=observed_std,
-        intercept=intercept,
     )
     event_rate = torch.exp(logits)
     event_time = dist.Exponential(event_rate).sample()
@@ -207,4 +208,4 @@ def simulate(cfg: Config) -> None:
     if indicator := data.get("indicator"):
         print("Prevalence:", indicator.mean().item())
     splits = train_val_test_split(data=data, proportions=cfg.proportions)
-    splits.save(cfg.path.dataset)
+    splits.save(str(cfg.path.dataset))
