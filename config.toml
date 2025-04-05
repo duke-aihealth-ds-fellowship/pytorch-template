@@ -1,13 +1,12 @@
-[main]
 seed = 42          # Random seed for reproducibility
 dev_run = false    # Run a small subset of the data for debugging
 task = "cls" # cls, reg, tte, mxc (classification, regression, time-to-event, mixture-cure)
-simulate = false # Regenerate the tokenized dataset
+simulate = true # Regenerate the tokenized dataset
 tune = false       # tune the model hyperparameters
 use_best = false   # use the best hyperparameters found during tuning
 train = false      # train the model
 evaluate = false   # Generate test set model performance metrics 
-importance = true  # Compute feature importance
+importance = false  # Compute feature importance
 plot = false       # Generate plots/figures
 compile = false    # Compile the Torch model
 proportions = [0.8, 0.1, 0.1] # proportions for train, val, test splits
@@ -19,8 +18,8 @@ checkpoint = "data/model/checkpoint.pt"
 logs = "data/logs"                                 
 metrics = "data/results/metrics.parquet"                   
 attribution = "data/results/attribution.parquet"                                      
-importance = "data/plots/importance.png"
-metrics = "data/plots/metrics.png"
+importance_plot = "data/plots/importance.png"
+metrics_plot = "data/plots/metrics.png"
 
 [simulation]
 intercept = -2.5   # this affects the prevalence

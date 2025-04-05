@@ -12,8 +12,7 @@ class PathConfig(BaseModel):
     checkpoint: Path
     logs: Path
     metrics: Path
-    attributions: Path
-    plots: Path
+    attribution: Path
     importance_plot: Path
     metrics_plot: Path
 

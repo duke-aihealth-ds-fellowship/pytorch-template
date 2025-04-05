@@ -35,9 +35,9 @@ class Objective:
         trainer.train()
         if trainer.eval_loss < self.best_eval_loss:
             self.best_eval_loss = trainer.eval_loss
-            with open(self.cfg.hparams.path, "w") as f:
+            with open(self.cfg.path.hyperparameters, "w") as f:
                 json.dump(hyperparams, f)
-            torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
+            torch.save(trainer.model.state_dict(), self.cfg.path.checkpoint)
         return trainer.eval_loss
 
 

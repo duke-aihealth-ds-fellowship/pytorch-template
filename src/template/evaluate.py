@@ -55,7 +55,7 @@ def evaluate_model(cfg: Config, loader: DataLoader) -> pl.DataFrame:
         metrics.update(outputs, labels)
     results = metrics.compute()
     results = format_results(results)
-    results.write_parquet(cfg.evaluator.path)
+    results.write_parquet(cfg.path.metrics)
     return results
 
 

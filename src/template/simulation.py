@@ -7,10 +7,15 @@ from template.dataset import train_val_test_split
 
 
 def make_parameters(
-    d_features: int, scale: float, std: float, n_draws: int = 1
+    parameters: int | list[float], scale: float, std: float, n_draws: int = 1
 ) -> torch.Tensor:
-    covariance = torch.eye(d_features) * (std**2)
-    mean = torch.randn(d_features) * scale  # TODO this should be an argument
+    match parameters:
+        case int():
+            mean = torch.randn(parameters) * scale
+            covariance = torch.eye(parameters) * (std**2)
+        case list():
+            mean = torch.tensor(parameters) * scale
+            covariance = torch.eye(mean.size(0)) * (std**2)
     mvn = dist.MultivariateNormal(mean, covariance)
     return mvn.sample((n_draws,))
 
@@ -43,13 +48,14 @@ def make_linear_output(
 def make_linear_data(
     d_features: int,
     scale: float,
+    std: float,
     n_samples: int,
     variance: float,
     m_timepoints: int,
     noise: float,
     intercept: float,
 ):
-    parameters = make_parameters(d_features, scale)
+    parameters = make_parameters(d_features=d_features, scale=scale, std=std)
     latent_features = make_latent_features(d_features, n_samples, variance)
     observed_features = make_observed_features(latent_features, m_timepoints, noise)
     outputs = make_linear_output(latent_features, parameters, intercept)

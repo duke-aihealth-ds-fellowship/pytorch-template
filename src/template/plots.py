@@ -8,7 +8,7 @@ from template.config import Config, get_config
 
 
 def plot_metrics(cfg: Config):
-    df = pl.read_parquet(cfg.evaluator.path)
+    df = pl.read_parquet(cfg.path.metrics)
     plt.figure()
     sns.set_theme(style=cfg.plots.style, font_scale=cfg.plots.font_scale)
     g = sns.catplot(
@@ -20,7 +20,7 @@ def plot_metrics(cfg: Config):
         errorbar="pi",  # 95% confidence interval
     )
     g.set_axis_labels("Metric", "Value")
-    plt.savefig(cfg.plots.metrics)
+    plt.savefig(cfg.path.metrics_plot)
 
 
 def get_top_k_tokens(df: pl.DataFrame, k: int) -> pl.DataFrame:
@@ -41,7 +41,7 @@ def get_top_k_tokens(df: pl.DataFrame, k: int) -> pl.DataFrame:
 def plot_attributions(cfg: Config):
     plt.figure()
     sns.set_theme(style=cfg.plots.style, font_scale=cfg.plots.font_scale)
-    df = pl.read_parquet(cfg.attribution.path)
+    df = pl.read_parquet(cfg.path.attributions)
     df = get_top_k_tokens(df, k=10)
     vmin = min(df["count"].to_list())
     vmax = max(df["count"].to_list())
@@ -71,7 +71,7 @@ def plot_attributions(cfg: Config):
     for ax in g.axes.flat:
         ax.grid(axis="y")
         ax.axvline(0, color="black", linestyle="--")
-    plt.savefig(cfg.plots.importance)
+    plt.savefig(cfg.path.importance_plot)
 
 
 def plot(cfg: Config):

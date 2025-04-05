@@ -156,7 +156,7 @@ def make_trainer(
 
 def train_model(loaders: DataLoaders, cfg: Config):
     if cfg.main.use_best:
-        with open(cfg.hparams.path, "r") as file:
+        with open(cfg.path.hyperparameters, "r") as file:
             hyperparameters = json.load(file)
         cfg = set_hyperparameters(cfg=cfg, **hyperparameters)
         trainer = make_trainer(loaders.train_val, loaders.test, cfg=cfg)
@@ -164,4 +164,4 @@ def train_model(loaders: DataLoaders, cfg: Config):
     else:
         trainer = make_trainer(loaders.train, loaders.val, cfg=cfg)
         trainer.train()
-    torch.save(trainer.model.state_dict(), cfg.tuner.checkpoint)
+    torch.save(trainer.model.state_dict(), cfg.path.checkpoint)
