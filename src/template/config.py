@@ -26,13 +26,14 @@ class PathConfig(BaseModel):
 
 
 class SimulationConfig(BaseModel):
-    intercept: float
-    d_features: int
-    scale: float
     n_samples: int
     m_timepoints: int
-    variance: float
-    noise: float
+    intercept: float
+    d_features: int | list[float]
+    scale: float
+    parameter_std: float
+    latent_std: float
+    observed_std: float
     gamma_shape: float
     gamma_rate: float
 

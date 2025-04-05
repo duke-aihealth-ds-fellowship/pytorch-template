@@ -22,13 +22,14 @@ importance_plot = "data/plots/importance.png"
 metrics_plot = "data/plots/metrics.png"
 
 [simulation]
-intercept = -2.5   # this affects the prevalence
-d_features = 2
-scale = 1.0
 n_samples = 1000
 m_timepoints = 20
-variance = 0.5
-noise = 0.05
+intercept = -2.5   # this affects the prevalence
+d_features = [-1.5, 1,5]
+scale = 1.0
+parameters_std = 0.1
+latent_std = 0.5
+observed_std = 0.1
 gamma_shape = 1.0
 gamma_rate = 1.0
 
