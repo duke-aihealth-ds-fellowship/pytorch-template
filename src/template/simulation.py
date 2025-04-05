@@ -3,10 +3,16 @@ import torch.distributions as dist
 from tensordict import TensorDict
 
 from template.config import Config
+from template.dataset import train_val_test_split
 
 
-def make_parameters(d_features: int, scale: float) -> torch.Tensor:
-    return torch.randn(d_features) * scale
+def make_parameters(
+    d_features: int, scale: float, std: float, n_draws: int = 1
+) -> torch.Tensor:
+    covariance = torch.eye(d_features) * (std**2)
+    mean = torch.randn(d_features) * scale  # TODO this should be an argument
+    mvn = dist.MultivariateNormal(mean, covariance)
+    return mvn.sample((n_draws,))
 
 
 def make_latent_features(
@@ -31,7 +37,7 @@ def make_observed_features(
 def make_linear_output(
     features: torch.Tensor, parameters: torch.Tensor, intercept: float
 ) -> torch.Tensor:
-    return intercept + features @ parameters
+    return intercept + features @ parameters.transpose(0, 1)
 
 
 def make_linear_data(
@@ -56,13 +62,12 @@ def create_base_tensor_dict(
     observed_features: torch.Tensor,
     parameters: torch.Tensor,
 ) -> TensorDict:
-    """Create a TensorDict with common fields used across simulation types."""
     ids = torch.arange(n_samples)
     return TensorDict(
         {
             "id": ids.unsqueeze(1).expand(-1, m_timepoints),
             "features": observed_features,
-            "parameters": parameters.unsqueeze(0).expand(n_samples, -1),
+            "parameters": parameters.unsqueeze(0).expand(n_samples, m_timepoints, -1),
         },
         batch_size=n_samples,
     )
@@ -172,7 +177,7 @@ def mixture_cure():
     pass
 
 
-def simulate(cfg: Config):
+def simulate(cfg: Config) -> None:
     exclude = {"gamma_shape", "gamma_rate"}
     if cfg.task in {"tte", "mxc"}:
         exclude = set()
@@ -192,4 +197,5 @@ def simulate(cfg: Config):
         )
     if indicator := data.get("indicator"):
         print("Prevalence:", indicator.mean().item())
-    return data
+    splits = train_val_test_split(data=data, proportions=cfg.proportions)
+    splits.save(cfg.path.dataset)

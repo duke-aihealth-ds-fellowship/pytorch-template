@@ -1,7 +1,8 @@
 [main]
 seed = 42          # Random seed for reproducibility
 dev_run = false    # Run a small subset of the data for debugging
-regenerate = false # Regenerate the tokenized dataset
+task = "cls" # cls, reg, tte, mxc (classification, regression, time-to-event, mixture-cure)
+simulate = false # Regenerate the tokenized dataset
 tune = false       # tune the model hyperparameters
 use_best = false   # use the best hyperparameters found during tuning
 train = false      # train the model
@@ -9,10 +10,20 @@ evaluate = false   # Generate test set model performance metrics
 importance = true  # Compute feature importance
 plot = false       # Generate plots/figures
 compile = false    # Compile the Torch model
-data = "data/"     # Path to the data directory
+proportions = [0.8, 0.1, 0.1] # proportions for train, val, test splits
+
+[path]
+dataset = "data/dataset"                           
+hyperparameters = "data/model/hyperparameters.json"
+checkpoint = "data/model/checkpoint.pt"                
+logs = "data/logs"                                 
+metrics = "data/results/metrics.parquet"                   
+attribution = "data/results/attribution.parquet"                                      
+importance = "data/plots/importance.png"
+metrics = "data/plots/metrics.png"
 
 [simulation]
-intercept = 0.0   # this affects the prevalence
+intercept = -2.5   # this affects the prevalence
 d_features = 2
 scale = 1.0
 n_samples = 1000
@@ -23,7 +34,6 @@ gamma_shape = 1.0
 gamma_rate = 1.0
 
 [dataset]
-path = "rotten_tomatoes"
 train_size = 0.8
 stratify = "label"
 
@@ -55,7 +65,7 @@ gamma = 0.9
 [trainer]
 max_epochs = 5
 gradient_clip = 1.0
-device = "cpu"
+device = "auto" # auto, cpu, cuda, mps
 
 [tuner]
 n_trials = 16
@@ -97,17 +107,8 @@ log = true
 
 [evaluator]
 n_bootstraps = 100
-path = "metrics.parquet"
-
-[attribution]
-path = "attribution.parquet"
-num_samples = 512
-
 
 [plots]
-path = "plots/"
-importance = "importance.png"
-metrics = "metrics.png"
 style = "darkgrid"
 font_scale = 1.5
 palette = "viridis"

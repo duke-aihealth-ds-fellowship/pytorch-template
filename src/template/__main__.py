@@ -1,10 +1,11 @@
 import torch
 
 from template.config import get_config
-from template.dataset import get_data, make_dataloaders
+from template.dataset import make_dataloaders
 from template.evaluate import evaluate_model
 from template.importance import feature_importance
 from template.plots import plot
+from template.simulation import simulate
 from template.train import train_model
 from template.tune import tune_hyperparameters
 
@@ -12,11 +13,15 @@ from template.tune import tune_hyperparameters
 def main():
     cfg = get_config()
 
+    cfg.path.init_paths()
+
     torch.manual_seed(cfg.seed)
     torch.set_float32_matmul_precision("high")
 
-    data = get_data(cfg=cfg)
-    loaders = make_dataloaders(data=data, cfg=cfg)
+    if cfg.simulate or cfg.path:
+        simulate(cfg=cfg)
+
+    loaders = make_dataloaders(cfg=cfg)
 
     if cfg.tune:
         tune_hyperparameters(loaders, cfg=cfg)

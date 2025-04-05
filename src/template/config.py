@@ -1,8 +1,29 @@
 from pathlib import Path
 from typing import Any, Literal
 
+import torch
 from pydantic import BaseModel
 from tomllib import load
+
+
+class PathConfig(BaseModel):
+    dataset: Path
+    hyperparameters: Path
+    checkpoint: Path
+    logs: Path
+    metrics: Path
+    attributions: Path
+    plots: Path
+    importance_plot: Path
+    metrics_plot: Path
+
+    def init_paths(self) -> None:
+        for field_value in self.__dict__.values():
+            if isinstance(field_value, Path):
+                if field_value.suffix:
+                    field_value.parent.mkdir(parents=True, exist_ok=True)
+                else:
+                    field_value.mkdir(parents=True, exist_ok=True)
 
 
 class SimulationConfig(BaseModel):
@@ -18,7 +39,6 @@ class SimulationConfig(BaseModel):
 
 
 class DatasetConfig(BaseModel):
-    path: str
     train_size: float
     stratify: str
 
@@ -62,7 +82,6 @@ class TrainerConfig(BaseModel):
 class TunerConfig(BaseModel):
     n_trials: int
     direction: str
-    checkpoint: Path
 
 
 class HParamsConfig(BaseModel):
@@ -77,37 +96,29 @@ class HParamsConfig(BaseModel):
 
 
 class EvaluatorConfig(BaseModel):
-    path: Path
     n_bootstraps: int
 
 
-class AttributionConfig(BaseModel):
-    num_samples: int
-    path: Path
-
-
 class PlotConfig(BaseModel):
-    path: Path
-    importance: Path
-    metrics: Path
     style: Literal["white", "dark", "whitegrid", "darkgrid"]
     font_scale: float
     palette: str
 
 
-# def get_device() -> str:
-#     if torch.cuda.is_available():
-#         return "cuda"
-#     elif torch.mps.is_available():
-#         return "mps"
-#     else:
-#         return "cpu"
+def get_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
 
 
 class Config(BaseModel):
     seed: int
     dev_run: bool
-    regenerate: bool
+    task: str
+    simulate: bool
     tune: bool
     use_best: bool
     train: bool
@@ -115,7 +126,9 @@ class Config(BaseModel):
     importance: bool
     plot: bool
     compile: bool
-    data: Path
+    proportions: list[float]
+    path: PathConfig
+    simulation: SimulationConfig
     dataset: DatasetConfig
     dataloader: DataLoaderConfig
     model: ModelConfig
@@ -126,7 +139,6 @@ class Config(BaseModel):
     tuner: TunerConfig
     hparams: HParamsConfig
     evaluator: EvaluatorConfig
-    attribution: AttributionConfig
     plots: PlotConfig
 
     def set_dev_run(self) -> None:
@@ -135,25 +147,11 @@ class Config(BaseModel):
         self.hparams.max_epochs["low"] = 1
         self.hparams.max_epochs["high"] = 1
         self.evaluator.n_bootstraps = 3
-        self.attribution.num_samples = 10
-
-    # TODO automate path construction
-    def init_paths(self) -> None:
-        self.main.data.mkdir(exist_ok=True, parents=True)
-        self.tokenizer.path = self.main.data / self.tokenizer.path
-        self.hparams.path = self.main.data / self.hparams.path
-        self.tuner.checkpoint = self.main.data / self.tuner.checkpoint
-        self.evaluator.path = self.main.data / self.evaluator.path
-        self.attribution.path = self.main.data / self.attribution.path
-        self.plots.path = self.main.data / self.plots.path
-        self.plots.importance = self.plots.path / self.plots.importance
-        self.plots.metrics = self.plots.path / self.plots.metrics
-        self.model.vocab_size = self.tokenizer.vocab_size
 
     def model_post_init(self, __context: Any) -> None:
-        # self.trainer.device = get_device()
-        self.init_paths()
-        if self.main.dev_run:
+        if self.trainer.device == "auto":
+            self.trainer.device = get_device()
+        if self.dev_run:
             self.set_dev_run()
 
 

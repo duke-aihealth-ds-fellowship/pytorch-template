@@ -6,7 +6,6 @@ from tensordict import TensorDict
 from torch.utils.data import DataLoader
 
 from template.config import Config
-from template.simulation import simulate
 
 
 def train_val_test_split(data: TensorDict, proportions: list[float]) -> TensorDict:
@@ -30,15 +29,6 @@ def save_data(data: TensorDict, cfg: Config):
     return data
 
 
-def get_data(cfg: Config):
-    if not cfg.dataset.path.exists() or cfg.main.regenerate:
-        data = simulate(cfg=cfg)
-        save_data(data=data, path=cfg.dataset.path)
-    else:
-        data = TensorDict.load(cfg.dataset.path)
-    return data
-
-
 @dataclass
 class DataLoaders:
     train: DataLoader
@@ -47,15 +37,12 @@ class DataLoaders:
     train_val: DataLoader
 
 
-# TODO add padding collate_fn
-def collate_fn(batch):
-    pass
-
-
 def make_dataloaders(data: TensorDict, cfg: Config) -> DataLoaders:
-    cfg.model.output_dim = len(data["train"].unique("label"))
-    loader = partial(DataLoader, collate_fn=collate_fn, **cfg.dataloader.model_dump())
+    cfg.model.output_dim = len(data["train"]["label"].unique())
+    loader_kwargs = cfg.dataloader.model_dump()
+    loader = partial(DataLoader, **loader_kwargs)
     train_loader = partial(loader, shuffle=True, drop_last=True)
+    data = TensorDict.load(cfg.path.dataset)
     return DataLoaders(
         train=train_loader(dataset=data["train"]),
         val=loader(dataset=data["val"]),
