@@ -50,6 +50,24 @@ def make_linear_data(
     return parameters, observed_features, outputs
 
 
+def create_base_tensor_dict(
+    n_samples: int,
+    m_timepoints: int,
+    observed_features: torch.Tensor,
+    parameters: torch.Tensor,
+) -> TensorDict:
+    """Create a TensorDict with common fields used across simulation types."""
+    ids = torch.arange(n_samples)
+    return TensorDict(
+        {
+            "id": ids.unsqueeze(1).expand(-1, m_timepoints),
+            "features": observed_features,
+            "parameters": parameters.unsqueeze(0).expand(n_samples, -1),
+        },
+        batch_size=n_samples,
+    )
+
+
 def classification(
     intercept: float,
     d_features: int,
@@ -70,16 +88,10 @@ def classification(
     )
     probability = torch.sigmoid(logits)
     label = torch.bernoulli(probability)
-    ids = torch.arange(n_samples)
-    data = TensorDict(
-        {
-            "id": ids.unsqueeze(1).expand(-1, m_timepoints),
-            "features": observed_features,
-            "label": label.unsqueeze(1).expand(-1, m_timepoints),
-            "parameters": parameters,
-        },
-        batch_size=n_samples,
+    data = create_base_tensor_dict(
+        n_samples, m_timepoints, observed_features, parameters
     )
+    data["label"] = label.unsqueeze(1).expand(-1, m_timepoints)
     return data
 
 
@@ -101,16 +113,10 @@ def regression(
         noise=noise,
         intercept=intercept,
     )
-    ids = torch.arange(n_samples)
-    data = TensorDict(
-        {
-            "id": ids.unsqueeze(1).expand(-1, m_timepoints),
-            "features": observed_features,
-            "target": target.unsqueeze(1).expand(-1, m_timepoints),
-            "parameters": parameters,
-        },
-        batch_size=n_samples,
+    data = create_base_tensor_dict(
+        n_samples, m_timepoints, observed_features, parameters
     )
+    data["target"] = target.unsqueeze(1).expand(-1, m_timepoints)
     return data
 
 
@@ -145,20 +151,18 @@ def time_to_event(
     indicator = (event_time < censor_time).float()
     observed_time = torch.minimum(censor_time, event_time)
     time_to_event = observed_time - time
-    ids = torch.arange(n_samples)
-    data = TensorDict(
+    data = create_base_tensor_dict(
+        n_samples, m_timepoints, observed_features, parameters
+    )
+    data.update(
         {
-            "id": ids.unsqueeze(1).expand(-1, m_timepoints),
             "time": time,
-            "features": observed_features,
             "indicator": indicator.unsqueeze(1).expand(-1, m_timepoints),
             "event_time": event_time.unsqueeze(1).expand(-1, m_timepoints),
             "censor_time": censor_time.unsqueeze(1).expand(-1, m_timepoints),
             "observed_time": observed_time.unsqueeze(1).expand(-1, m_timepoints),
             "time_to_event": time_to_event,
-            "parameters": parameters.unsqueeze(0).expand(n_samples, -1),
-        },
-        batch_size=n_samples,
+        }
     )
     return data
 
@@ -170,18 +174,22 @@ def mixture_cure():
 
 def simulate(cfg: Config):
     exclude = {"gamma_shape", "gamma_rate"}
+    if cfg.task in {"tte", "mxc"}:
+        exclude = set()
+    config = cfg.simulation.model_dump(exclude=exclude)
     if cfg.task == "cls":
-        cls_config = cfg.simulation.model_dump(exclude=exclude)
-        data = classification(**cls_config)
+        data = classification(**config)
     elif cfg.task == "reg":
-        reg_config = cfg.simulation.model_dump(exclude=exclude)
-        data = regression(**reg_config)
+        data = regression(**config)
     elif cfg.task == "tte":
-        data = time_to_event(**cfg.simulation.model_dump())
+        data = time_to_event(**config)
     elif cfg.task == "mxc":
         # TODO implement mixture cure model
         raise NotImplementedError("Mixture cure model is not implemented yet.")
     else:
-        raise ValueError(f"Unknown task: {cfg.task}. Choose from 'cls', 'tte', 'mxc'.")
-    print("Prevalence:", data["indicator"].mean().item())
+        raise ValueError(
+            f"Unknown task: {cfg.task}. Choose from 'cls', 'reg', 'tte', 'mxc'."
+        )
+    if indicator := data.get("indicator"):
+        print("Prevalence:", indicator.mean().item())
     return data
