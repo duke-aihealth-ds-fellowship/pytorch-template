@@ -28,6 +28,7 @@ class PathConfig(BaseModel):
 class SimulationConfig(BaseModel):
     n_samples: int
     m_timepoints: int
+    n_draws: int
     intercept: float
     d_features: int | list[float]
     scale: float
