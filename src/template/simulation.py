@@ -18,7 +18,7 @@ def make_parameters(cfg: SimulationConfig) -> Tensor:
     if cfg.n_draws > 0:
         return mvn.sample((cfg.n_draws,))
     else:
-        return mean
+        return mean.unsqueeze(0)
 
 
 def make_latent_features(parameters: Tensor, cfg: SimulationConfig) -> Tensor:
