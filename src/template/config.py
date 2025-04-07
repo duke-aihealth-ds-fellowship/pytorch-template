@@ -26,11 +26,11 @@ class PathConfig(BaseModel):
 
 
 class SimulationConfig(BaseModel):
-    n_samples: int
-    m_timepoints: int
-    n_draws: int
+    num_samples: int
+    num_timepoints: int
+    num_draws: int
+    num_features: int | list[float]
     intercept: float
-    d_features: int | list[float]
     scale: float
     parameter_std: float
     latent_std: float
@@ -41,7 +41,7 @@ class SimulationConfig(BaseModel):
 
 class DatasetConfig(BaseModel):
     train_size: float
-    stratify: str
+    stratify: str  # TODO unused
 
 
 class DataLoaderConfig(BaseModel):

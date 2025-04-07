@@ -1,6 +1,6 @@
 seed = 42          # Random seed for reproducibility
 dev_run = false    # Run a small subset of the data for debugging
-task = "cls" # cls, reg, tte, mxc (classification, regression, time-to-event, mixture-cure)
+task = "tte" # cls, reg, tte, mxc (classification, regression, time-to-event, mixture-cure)
 simulate = true # Regenerate the tokenized dataset
 tune = false       # tune the model hyperparameters
 use_best = false   # use the best hyperparameters found during tuning
@@ -22,13 +22,13 @@ importance_plot = "data/plots/importance.png"
 metrics_plot = "data/plots/metrics.png"
 
 [simulation]
-n_samples = 1000
-m_timepoints = 20
-n_raws = 0
+num_samples = 1000
+num_timepoints = 20
+num_draws = 10
+num_features = [-1.5, 1.5] # can be list[float] or int
 intercept = -2.5   # this affects the prevalence
-d_features = [-1.5, 1,5]
 scale = 1.0
-parameters_std = 0.1
+parameter_std = 0.1
 latent_std = 0.5
 observed_std = 0.1
 gamma_shape = 1.0
@@ -36,7 +36,7 @@ gamma_rate = 1.0
 
 [dataset]
 train_size = 0.8
-stratify = "label"
+stratify = "label" # TODO unused
 
 [dataloader]
 batch_size = 32

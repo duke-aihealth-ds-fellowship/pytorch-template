@@ -30,9 +30,22 @@ class DataLoaders:
     train_val: DataLoader
 
 
+def get_target(cfg: Config) -> str:
+    if cfg.task == "cls":
+        target = "label"
+    elif cfg.task == "reg":
+        target = "target"
+    elif cfg.task == "tte":
+        target = "indicator"
+    else:
+        raise ValueError(f"Unknown task: {cfg.task}. Choose from 'cls', 'reg', 'tte'.")
+    return target
+
+
 def make_dataloaders(cfg: Config) -> DataLoaders:
     data = TensorDict.load(cfg.path.dataset)
-    cfg.model.output_dim = len(data["train"]["label"].unique())
+    target = get_target(cfg=cfg)
+    cfg.model.output_dim = len(data["train"][target].unique())
     loader_kwargs = cfg.dataloader.model_dump()
     loader = partial(DataLoader, **loader_kwargs)
     train_loader = partial(loader, shuffle=True, drop_last=True)
