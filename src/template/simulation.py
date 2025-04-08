@@ -8,11 +8,11 @@ from template.dataset import train_val_test_split
 
 
 def make_parameters(cfg: SimulationConfig) -> Tensor:
-    match cfg.num_features:
+    match cfg.parameters:
         case int():
-            mean = torch.randn(cfg.num_features)
+            mean = torch.randn(cfg.parameters)
         case list():
-            mean = torch.tensor(cfg.num_features)
+            mean = torch.tensor(cfg.parameters)
     mean = mean * cfg.scale
     covariance = torch.eye(mean.size(0)) * (cfg.parameter_std**2)
     mvn = dist.MultivariateNormal(mean, covariance)

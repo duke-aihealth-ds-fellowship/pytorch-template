@@ -125,7 +125,7 @@ def make_trainer(
     train_loader: DataLoader, eval_loader: DataLoader, cfg: Config
 ) -> Trainer:
     model = Transformer(**cfg.model.model_dump())
-    if cfg.main.compile:
+    if cfg.compile:
         model = torch.compile(model)
     model.to(cfg.trainer.device)
     # TODO criterion should change based on cfg.task
@@ -155,7 +155,7 @@ def make_trainer(
 
 
 def train_model(loaders: DataLoaders, cfg: Config):
-    if cfg.main.use_best:
+    if cfg.use_best:
         with open(cfg.path.hyperparameters, "r") as file:
             hyperparameters = json.load(file)
         cfg = set_hyperparameters(cfg=cfg, **hyperparameters)

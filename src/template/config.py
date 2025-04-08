@@ -13,6 +13,7 @@ class PathConfig(BaseModel):
     logs: Path
     metrics: Path
     attribution: Path
+    simulation_plot: Path
     importance_plot: Path
     metrics_plot: Path
 
@@ -29,7 +30,7 @@ class SimulationConfig(BaseModel):
     num_samples: int
     num_timepoints: int
     num_draws: int
-    num_features: int | list[float]
+    parameters: int | list[float]
     intercept: float
     scale: float
     parameter_std: float
@@ -56,7 +57,6 @@ class ModelConfig(BaseModel):
     num_heads: int
     num_layers: int
     dropout: float
-    compile: bool
     output_dim: int = -1  # set at run time
 
 

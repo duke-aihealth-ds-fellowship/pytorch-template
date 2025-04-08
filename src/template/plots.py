@@ -1,10 +1,47 @@
+from typing import cast
+
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 import seaborn as sns
 from matplotlib import colors
+from tensordict import TensorDict
 
 from template.config import Config, get_config
+
+
+def format_simulation(data: TensorDict) -> pl.DataFrame:
+    df = pl.DataFrame(
+        {
+            "id": data["id"].flatten().numpy(),
+            "indicator": data["indicator"].flatten().numpy(),
+            "time": data["time"].flatten().numpy(),
+            "x_0": data["features"][..., 0].flatten().numpy(),
+            "x_1": data["features"][..., 1].flatten().numpy(),
+        }
+    )
+    return df
+
+
+def plot_simulation(df: pl.DataFrame, cfg: Config):
+    df = df.filter(pl.col("id").is_in(pl.col("id").unique().sample(n=20)))
+    g = sns.scatterplot(
+        data=df,
+        x="x_0",
+        y="x_1",
+        hue="id",
+        style="indicator",
+        palette="tab20",
+        legend=False,
+    )
+    if isinstance(cfg.simulation.parameters, list):
+        start = cast(float, df["x_0"].min())
+        stop = cast(float, df["x_0"].max())
+        x_vals = np.linspace(start=start, stop=stop, num=10)
+        y_vals = -(cfg.simulation.parameters[0] / cfg.simulation.parameters[1]) * x_vals
+        g.plot(x_vals, y_vals, color="black")
+    plt.tight_layout()
+    plt.savefig(cfg.path.simulation_plot)
 
 
 def plot_metrics(cfg: Config):

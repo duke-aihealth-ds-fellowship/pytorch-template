@@ -1,10 +1,10 @@
 seed = 42          # Random seed for reproducibility
 dev_run = false    # Run a small subset of the data for debugging
-task = "tte" # cls, reg, tte, mxc (classification, regression, time-to-event, mixture-cure)
+task = "cls" # cls, reg, tte, mxc (classification, regression, time-to-event, mixture-cure)
 simulate = true # Regenerate the tokenized dataset
 tune = false       # tune the model hyperparameters
 use_best = false   # use the best hyperparameters found during tuning
-train = false      # train the model
+train = true      # train the model
 evaluate = false   # Generate test set model performance metrics 
 importance = false  # Compute feature importance
 plot = false       # Generate plots/figures
@@ -18,14 +18,15 @@ checkpoint = "data/model/checkpoint.pt"
 logs = "data/logs"                                 
 metrics = "data/results/metrics.parquet"                   
 attribution = "data/results/attribution.parquet"                                      
+simulation_plot = "data/plots/simulation.png"
 importance_plot = "data/plots/importance.png"
 metrics_plot = "data/plots/metrics.png"
 
 [simulation]
 num_samples = 1000
 num_timepoints = 20
-num_draws = 10
-num_features = [-1.5, 1.5] # can be list[float] or int
+num_draws = 0
+parameters = [-1.5, 1.5] # can be list[float] or int
 intercept = -2.5   # this affects the prevalence
 scale = 1.0
 parameter_std = 0.1
@@ -50,7 +51,7 @@ hidden_dim = 256
 num_heads = 4
 num_layers = 3
 dropout = 0.1
-compile = false
+
 
 [loss]
 ignore_index = -100
