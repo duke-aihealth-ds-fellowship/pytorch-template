@@ -7,8 +7,27 @@ from optuna.samplers import QMCSampler, TPESampler
 
 from template.config import Config
 from template.dataset import DataLoaders
-from template.model import set_hyperparameters
 from template.train import make_trainer
+
+
+def set_hyperparameters(
+    cfg: Config,
+    max_epochs: int,
+    hidden_dim: int,
+    num_heads: int,
+    num_layers: int,
+    dropout: float,
+    lr: float,
+    weight_decay: float,
+) -> Config:
+    cfg.trainer.max_epochs = max_epochs
+    cfg.model.hidden_dim = 2**hidden_dim
+    cfg.model.num_heads = 2**num_heads
+    cfg.model.num_layers = num_layers
+    cfg.model.dropout = dropout
+    cfg.optimizer.lr = lr
+    cfg.optimizer.weight_decay = weight_decay
+    return cfg
 
 
 class Objective:
@@ -57,10 +76,10 @@ def make_study(cfg: Config, sampler: optuna.samplers.BaseSampler) -> optuna.stud
 def tune_hyperparameters(loaders: DataLoaders, cfg: Config):
     objective = Objective(cfg=cfg, loaders=loaders)
     half_trials = cfg.tuner.n_trials // 2
-    sampler = QMCSampler(seed=cfg.main.seed)
+    sampler = QMCSampler(seed=cfg.seed)
     study = make_study(cfg=cfg, sampler=sampler)
     study.optimize(func=objective, n_trials=half_trials)
-    study.sampler = TPESampler(multivariate=True, seed=cfg.main.seed)
+    study.sampler = TPESampler(multivariate=True, seed=cfg.seed)
     study.optimize(func=objective, n_trials=half_trials)
     print("Best hyperparameters:")
     print(json.dumps(study.best_params, indent=4))
@@ -72,7 +91,20 @@ def load_best_checkpoint(cfg: Config, model_class):
     cfg = set_hyperparameters(cfg=cfg, **hyperparams)
     with torch.device("meta"):
         model = model_class(**cfg.model.model_dump())
-    model_weights = torch.load(cfg.tuner.checkpoint, weights_only=True, mmap=True)
+    model_weights = torch.load(cfg.path.checkpoint, weights_only=True, mmap=True)
     model.load_state_dict(model_weights, assign=True)
     model.to(cfg.trainer.device)
     return model
+
+
+def train_model(loaders: DataLoaders, cfg: Config):
+    if cfg.use_best:
+        with open(cfg.path.hyperparameters, "r") as file:
+            hyperparameters = json.load(file)
+        cfg = set_hyperparameters(cfg=cfg, **hyperparameters)
+        trainer = make_trainer(loaders.train_val, loaders.test, cfg=cfg)
+        trainer.train()
+    else:
+        trainer = make_trainer(loaders.train, loaders.val, cfg=cfg)
+        trainer.train()
+    torch.save(trainer.model.state_dict(), cfg.path.checkpoint)

@@ -31,7 +31,7 @@ def make_latent_features(parameters: Tensor, cfg: SimulationConfig) -> Tensor:
 
 
 def make_observed_features(latent: Tensor, cfg: SimulationConfig) -> Tensor:
-    covariance = torch.eye(latent.shape[1]) * cfg.observed_std**2
+    covariance = torch.eye(latent.size(-1)) * cfg.observed_std**2
     mvn_ij = dist.MultivariateNormal(latent, covariance)
     features = mvn_ij.sample((cfg.num_timepoints,)).permute(1, 0, 2)
     return features
@@ -127,8 +127,10 @@ def print_simulation_shapes(data: TensorDict) -> None:
 
 
 def simulate(cfg: Config) -> None:
-    if cfg.task == "cls":
+    if cfg.task == "bc":
         data = classification(cfg=cfg.simulation)
+    elif cfg.task == "cls":
+        raise NotImplementedError("multiclass task is not implemented yet.")
     elif cfg.task == "reg":
         data = regression(cfg=cfg.simulation)
     elif cfg.task == "tte":
@@ -138,7 +140,7 @@ def simulate(cfg: Config) -> None:
         raise NotImplementedError("Mixture cure model is not implemented yet.")
     else:
         raise ValueError(
-            f"Unknown task: {cfg.task}. Choose from 'cls', 'reg', 'tte', 'mxc'."
+            f"Unknown task: {cfg.task}. Choose from 'bc', 'cls', 'reg', 'tte', 'mxc'."
         )
     splits = train_val_test_split(data=data, proportions=cfg.proportions)
     splits.save(str(cfg.path.dataset))

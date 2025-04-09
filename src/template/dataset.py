@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import partial
 
 from tensordict import LazyStackedTensorDict, TensorDict
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from template.config import Config
 
@@ -42,13 +42,39 @@ def get_target(cfg: Config) -> str:
     return target
 
 
+class TensorDictDataset(Dataset):
+    def __init__(self, tensordict: TensorDict):
+        self.tensordict = tensordict
+
+    def __len__(self):
+        return len(self.tensordict)
+
+    def __getitem__(self, idx):
+        return self.tensordict[idx]
+
+
+def get_output_dim(data: TensorDict, cfg: Config) -> int:
+    if cfg.task == "bc":
+        return 1
+    elif cfg.task == "cls":
+        target = get_target(cfg=cfg)
+        return len(data["train"][target].unique())
+    elif cfg.task == "tte":
+        raise NotImplementedError("Time-to-event task is not implemented yet")
+    elif cfg.task == "reg":
+        raise NotImplementedError("Regression task is not implemented yet")
+    else:
+        raise ValueError(
+            f"Unknown task: {cfg.task}. Choose from 'bc', 'cls', 'tte', 'reg'."
+        )
+
+
 def make_dataloaders(cfg: Config) -> DataLoaders:
     data = TensorDict.load(cfg.path.dataset)
-    target = get_target(cfg=cfg)
-    cfg.model.output_dim = len(data["train"][target].unique())
+    cfg.model.output_dim = get_output_dim(data=data, cfg=cfg)
     loader_kwargs = cfg.dataloader.model_dump()
     loader = partial(DataLoader, **loader_kwargs)
-    train_loader = partial(loader, shuffle=True, drop_last=True)
+    train_loader = partial(loader, shuffle=True, drop_last=True, collate_fn=lambda x: x)
     data = TensorDict.load(cfg.path.dataset)
     return DataLoaders(
         train=train_loader(dataset=data["train"]),

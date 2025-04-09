@@ -162,4 +162,4 @@ cython_debug/
 data/
 .vscode
 .DS_Store
-# log.ipynb # typically I do not include my notebooks in my git history.
+*.ipynb

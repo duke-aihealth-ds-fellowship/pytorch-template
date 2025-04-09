@@ -1,7 +1,7 @@
 seed = 42          # Random seed for reproducibility
 dev_run = false    # Run a small subset of the data for debugging
-task = "cls" # cls, reg, tte, mxc (classification, regression, time-to-event, mixture-cure)
-simulate = true # Regenerate the tokenized dataset
+task = "bc" # bc, cls, reg, tte, mxc (binary, multiclass, regression, time-to-event, mixture-cure)
+simulate = false # Regenerate the tokenized dataset
 tune = false       # tune the model hyperparameters
 use_best = false   # use the best hyperparameters found during tuning
 train = true      # train the model
@@ -46,20 +46,20 @@ pin_memory = true
 persistent_workers = false
 
 [model]
-embedding_dim = 128
-hidden_dim = 256
-num_heads = 4
-num_layers = 3
+hidden_dim = 8
+num_heads = 1
+num_layers = 2 
 dropout = 0.1
-
+bias = false
+causal = true
 
 [loss]
 ignore_index = -100
-reduction = "mean"
 
 [optimizer]
 lr = 1e-4
 weight_decay = 1e-6
+fused = true
 
 [scheduler]
 gamma = 0.9
@@ -67,7 +67,7 @@ gamma = 0.9
 [trainer]
 max_epochs = 5
 gradient_clip = 1.0
-device = "auto" # auto, cpu, cuda, mps
+device = "cpu" # auto, cpu, cuda, mps
 
 [tuner]
 n_trials = 16

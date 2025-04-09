@@ -57,21 +57,25 @@ class ModelConfig(BaseModel):
     num_heads: int
     num_layers: int
     dropout: float
+    bias: bool
+    causal: bool
+    input_dim: int = -1  # set at run time
     output_dim: int = -1  # set at run time
 
 
 class LossConfig(BaseModel):
     ignore_index: int
-    reduction: str
 
 
 class OptimizerConfig(BaseModel):
     lr: float
     weight_decay: float
+    fused: bool
 
 
 class SchedulerConfig(BaseModel):
     gamma: float
+    warmup_steps: int
 
 
 class TrainerConfig(BaseModel):

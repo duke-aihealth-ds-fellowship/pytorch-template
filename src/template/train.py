@@ -1,21 +1,34 @@
-import json
 from typing import Callable
 
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn.utils import clip_grad_norm_
+from torch.optim.adamw import AdamW
 from torch.optim.lr_scheduler import ExponentialLR, LinearLR, LRScheduler
-from torch.optim.nadam import NAdam
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from torchmetrics.classification import MulticlassAccuracy
+from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from torchmetrics.regression import MeanAbsoluteError
 from tqdm import tqdm
 
-from template.config import Config
-from template.dataset import DataLoaders
-from template.model import Transformer, set_hyperparameters
+from template.config import Config, SchedulerConfig
+
+# from template.loss import DiscreteFailureTimeNLL
+from template.model import Transformer
+
+
+class Scheduler:
+    def __init__(self, scheduler: LRScheduler, warmup_scheduler: LRScheduler) -> None:
+        self.scheduler = scheduler
+        self.warmup_scheduler = warmup_scheduler
+
+    def step(self):
+        self.scheduler.step()
+
+    def warmup_step(self):
+        self.warmup_scheduler.step()
 
 
 class Trainer:
@@ -26,8 +39,7 @@ class Trainer:
         model: nn.Module | Callable,
         criterion: nn.Module,
         optimizer: Optimizer,
-        warmup_scheduler: LRScheduler,
-        scheduler: LRScheduler,
+        scheduler: Scheduler,
         metric: Metric,
         max_epochs: int,
         gradient_clip: float,
@@ -38,7 +50,6 @@ class Trainer:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
-        self.warmup_scheduler = warmup_scheduler
         self.scheduler = scheduler
         self.metric = metric
         self.max_epochs = max_epochs
@@ -66,14 +77,14 @@ class Trainer:
         return tuple(batch[key].to(self.device) for key in keys)
 
     def train_step(self, batch: dict[str, Tensor]) -> float:
-        inputs, labels = self.to_device(batch, keys=["input_ids", "labels"])
+        inputs, labels = self.to_device(batch, keys=["observed_features", "label"])
         self.optimizer.zero_grad(set_to_none=True)
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         loss.backward()
         clip_grad_norm_(self.model.parameters(), max_norm=self.gradient_clip)
         self.optimizer.step()
-        self.warmup_scheduler.step()
+        self.scheduler.warmup_step()
         return loss.item()
 
     def train_epoch(self):
@@ -121,25 +132,67 @@ class Trainer:
         return predictions
 
 
-def make_trainer(
-    train_loader: DataLoader, eval_loader: DataLoader, cfg: Config
-) -> Trainer:
+def make_model(cfg: Config) -> nn.Module:
+    if isinstance(cfg.simulation.parameters, list):
+        cfg.model.input_dim = len(cfg.simulation.parameters)
+    else:
+        cfg.model.input_dim = cfg.simulation.parameters
     model = Transformer(**cfg.model.model_dump())
     if cfg.compile:
         model = torch.compile(model)
     model.to(cfg.trainer.device)
-    # TODO criterion should change based on cfg.task
-    criterion = nn.CrossEntropyLoss(**cfg.loss.model_dump())
-    optimizer = NAdam(
-        model.parameters(), **cfg.optimizer.model_dump(), decoupled_weight_decay=True
-    )
+    return model  # type: ignore
+
+
+def make_loss_fn(cfg: Config) -> nn.Module:
+    if cfg.task == "bc":
+        return nn.BCEWithLogitsLoss()
+    elif cfg.task == "cls":
+        return nn.CrossEntropyLoss(ignore_index=cfg.loss.ignore_index)
+    elif cfg.task == "reg":
+        return nn.MSELoss()
+    # elif cfg.task == "tte":
+    #     return DiscreteFailureTimeNLL(ignore_index=cfg.loss.ignore_index)
+    else:
+        raise ValueError(
+            f"Unknown task: {cfg.task}. Choose from 'bc', 'cls', 'reg', 'tte', 'mxc'."
+        )
+
+
+def make_metric(cfg: Config) -> Metric:
+    if cfg.task == "bc":
+        return BinaryAccuracy()
+    elif cfg.task == "cls":
+        return MulticlassAccuracy(num_classes=cfg.model.output_dim)
+    elif cfg.task == "reg":
+        return MeanAbsoluteError()
+    # elif cfg.task == "tte":
+    #     return TimeVaryingAUC(ignore_index=cfg.loss.ignore_index)
+    else:
+        raise ValueError(
+            f"Unknown task: {cfg.task}. Choose from 'bc', 'cls', 'reg', 'tte', 'mxc'."
+        )
+
+
+def make_scheduler(optimizer: Optimizer, cfg: SchedulerConfig) -> Scheduler:
     warmup_scheduler = LinearLR(
-        optimizer, start_factor=0.1, end_factor=1.0, total_iters=len(train_loader)
+        optimizer, start_factor=0.1, end_factor=1.0, total_iters=cfg.warmup_steps
     )
-    scheduler = ExponentialLR(optimizer, **cfg.scheduler.model_dump())
-    metric = MulticlassAccuracy(
-        num_classes=cfg.model.output_dim, ignore_index=cfg.loss.ignore_index
-    )
+    lr_scheduler = ExponentialLR(optimizer, gamma=cfg.gamma)
+    scheduler = Scheduler(scheduler=lr_scheduler, warmup_scheduler=warmup_scheduler)
+    return scheduler
+
+
+def make_trainer(
+    train_loader: DataLoader, eval_loader: DataLoader, cfg: Config
+) -> Trainer:
+    model = make_model(cfg=cfg)
+    criterion = make_loss_fn(cfg=cfg)
+    optimizer = AdamW(model.parameters(), **cfg.optimizer.model_dump())
+    if not cfg.scheduler.warmup_steps:
+        cfg.scheduler.warmup_steps = len(train_loader)
+    scheduler = make_scheduler(optimizer=optimizer, cfg=cfg.scheduler)
+    metric = make_metric(cfg=cfg)
     metric.to(cfg.trainer.device)
     return Trainer(
         train_loader=train_loader,
@@ -147,21 +200,7 @@ def make_trainer(
         model=model,
         criterion=criterion,
         optimizer=optimizer,
-        warmup_scheduler=warmup_scheduler,
         scheduler=scheduler,
         metric=metric,
         **cfg.trainer.model_dump(),
     )
-
-
-def train_model(loaders: DataLoaders, cfg: Config):
-    if cfg.use_best:
-        with open(cfg.path.hyperparameters, "r") as file:
-            hyperparameters = json.load(file)
-        cfg = set_hyperparameters(cfg=cfg, **hyperparameters)
-        trainer = make_trainer(loaders.train_val, loaders.test, cfg=cfg)
-        trainer.train()
-    else:
-        trainer = make_trainer(loaders.train, loaders.val, cfg=cfg)
-        trainer.train()
-    torch.save(trainer.model.state_dict(), cfg.path.checkpoint)

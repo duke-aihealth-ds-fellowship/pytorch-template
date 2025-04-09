@@ -6,8 +6,7 @@ from template.evaluate import evaluate_model
 from template.importance import feature_importance
 from template.plots import plot
 from template.simulation import simulate
-from template.train import train_model
-from template.tune import tune_hyperparameters
+from template.tune import train_model, tune_hyperparameters
 
 
 def main():
