@@ -2,6 +2,7 @@ from typing import Callable
 
 import torch
 import torch.nn as nn
+from tensordict import TensorDict
 from torch import Tensor
 from torch.nn.utils import clip_grad_norm_
 from torch.optim.adamw import AdamW
@@ -29,6 +30,12 @@ class Scheduler:
 
     def warmup_step(self):
         self.warmup_scheduler.step()
+
+
+def to_device(
+    batch: dict[str, Tensor], keys: list[str], device: str
+) -> tuple[Tensor, ...]:
+    return tuple(batch[key].to(device) for key in keys)
 
 
 class Trainer:
@@ -60,6 +67,7 @@ class Trainer:
         self.eval_metric = 0.0
         num_steps = max_epochs * len(train_loader)
         self.progress_bar = tqdm(total=num_steps, desc="Train steps")
+        self.td_keys = ["features", "labels"]
 
     def update_progress(self):
         postfix = (
@@ -71,16 +79,11 @@ class Trainer:
         self.progress_bar.set_postfix_str(postfix)
         self.progress_bar.update()
 
-    def to_device(
-        self, batch: dict[str, Tensor], keys: list[str]
-    ) -> tuple[Tensor, ...]:
-        return tuple(batch[key].to(self.device) for key in keys)
-
-    def train_step(self, batch: dict[str, Tensor]) -> float:
-        inputs, labels = self.to_device(batch, keys=["observed_features", "label"])
+    def train_step(self, batch: TensorDict) -> float:
+        batch = batch.to(self.device)
         self.optimizer.zero_grad(set_to_none=True)
-        outputs = self.model(inputs)
-        loss = self.criterion(outputs, labels)
+        outputs = self.model(batch["features"])
+        loss = self.criterion(outputs, batch["label"])
         loss.backward()
         clip_grad_norm_(self.model.parameters(), max_norm=self.gradient_clip)
         self.optimizer.step()
@@ -104,11 +107,11 @@ class Trainer:
         return self.train_loss
 
     @torch.no_grad()
-    def evaluate_step(self, batch: dict[str, Tensor]) -> float:
-        inputs, labels = self.to_device(batch, keys=["observed_features", "label"])
-        outputs = self.model(inputs)
-        self.metric.update(outputs, labels)
-        return self.criterion(outputs, labels).item()
+    def evaluate_step(self, batch: TensorDict) -> float:
+        batch = batch.to(self.device)
+        outputs = self.model(batch["features"])
+        self.metric.update(outputs, batch["label"])
+        return self.criterion(outputs, batch["label"]).item()
 
     @torch.no_grad()
     def evaluate(self) -> float:

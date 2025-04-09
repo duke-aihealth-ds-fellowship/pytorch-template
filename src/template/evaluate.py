@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from template.config import Config
 from template.model import Transformer
-from template.tune import load_best_checkpoint
+from template.tune import load_checkpoint
 
 
 def make_metrics(cfg: Config):
@@ -45,14 +45,13 @@ def format_results(results: dict[str, Tensor]) -> pl.DataFrame:
 
 @torch.no_grad()
 def evaluate_model(cfg: Config, loader: DataLoader) -> pl.DataFrame:
-    model = load_best_checkpoint(cfg=cfg, model_class=Transformer)
+    model = load_checkpoint(cfg=cfg, model_class=Transformer)
     model.eval()
     metrics = make_metrics(cfg=cfg)
     for batch in tqdm(loader, desc="Evaluating"):
-        inputs = batch["input_ids"].to(cfg.trainer.device)
-        labels = batch["labels"].to(cfg.trainer.device)
-        outputs = model(inputs)
-        metrics.update(outputs, labels)
+        batch = batch.to(cfg.trainer.device)
+        outputs = model(batch["features"])
+        metrics.update(outputs, batch["label"])
     results = metrics.compute()
     results = format_results(results)
     results.write_parquet(cfg.path.metrics)

@@ -4,9 +4,10 @@ import optuna
 import torch
 from optuna import Trial
 from optuna.samplers import QMCSampler, TPESampler
+from tensordict import TensorDict
 
 from template.config import Config
-from template.dataset import DataLoaders
+from template.dataset import DataLoaders, get_output_dim
 from template.train import make_trainer
 
 
@@ -85,10 +86,14 @@ def tune_hyperparameters(loaders: DataLoaders, cfg: Config):
     print(json.dumps(study.best_params, indent=4))
 
 
-def load_best_checkpoint(cfg: Config, model_class):
-    with open(cfg.hparams.path, "r") as file:
-        hyperparams = json.load(file)
-    cfg = set_hyperparameters(cfg=cfg, **hyperparams)
+def load_checkpoint(cfg: Config, model_class):
+    if cfg.use_best:
+        with open(cfg.hparams.path, "r") as file:
+            hyperparams = json.load(file)
+        cfg = set_hyperparameters(cfg=cfg, **hyperparams)
+    data = TensorDict.load(cfg.path.dataset)
+    cfg.model.input_dim = data["train"]["features"].shape[-1]
+    cfg.model.output_dim = get_output_dim(data=data, cfg=cfg)
     with torch.device("meta"):
         model = model_class(**cfg.model.model_dump())
     model_weights = torch.load(cfg.path.checkpoint, weights_only=True, mmap=True)
@@ -97,7 +102,7 @@ def load_best_checkpoint(cfg: Config, model_class):
     return model
 
 
-def train_model(loaders: DataLoaders, cfg: Config):
+def train_model(loaders: DataLoaders, cfg: Config, save: bool = True):
     if cfg.use_best:
         with open(cfg.path.hyperparameters, "r") as file:
             hyperparameters = json.load(file)
@@ -107,4 +112,6 @@ def train_model(loaders: DataLoaders, cfg: Config):
     else:
         trainer = make_trainer(loaders.train, loaders.val, cfg=cfg)
         trainer.train()
-    torch.save(trainer.model.state_dict(), cfg.path.checkpoint)
+    if save:
+        torch.save(trainer.model.state_dict(), cfg.path.checkpoint)
+    return trainer.model

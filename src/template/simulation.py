@@ -57,7 +57,7 @@ def make_base_tensordict(
 ) -> TensorDict:
     ids = torch.arange(cfg.num_samples).unsqueeze(1).expand(-1, cfg.num_timepoints)
     return TensorDict(
-        {"id": ids, "latent_features": latent, "observed_features": observed},
+        {"id": ids, "latent_features": latent, "features": observed},
         batch_size=cfg.num_samples,
     )
 

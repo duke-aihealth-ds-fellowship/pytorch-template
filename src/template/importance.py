@@ -4,12 +4,12 @@ from torch.utils.data import DataLoader
 
 from template.config import Config
 from template.model import Transformer
-from template.tune import load_best_checkpoint
+from template.tune import load_checkpoint
 
 
 # TODO: replace embeddings
 def make_attributions(inputs: Tensor, baselines: Tensor, target: int, cfg: Config):
-    model = load_best_checkpoint(cfg=cfg, model_class=Transformer)
+    model = load_checkpoint(cfg=cfg, model_class=Transformer)
     inputs = inputs.to(cfg.trainer.device)
     baselines = baselines.to(cfg.trainer.device)
     model.to(cfg.trainer.device)

@@ -105,6 +105,12 @@ class EvaluatorConfig(BaseModel):
     n_bootstraps: int
 
 
+class UncertaintyConfig(BaseModel):
+    method: str
+    mc_dropout_samples: int
+    ensemble_size: int
+
+
 class PlotConfig(BaseModel):
     style: Literal["white", "dark", "whitegrid", "darkgrid"]
     font_scale: float
@@ -129,6 +135,7 @@ class Config(BaseModel):
     use_best: bool
     train: bool
     evaluate: bool
+    uq: bool
     importance: bool
     plot: bool
     compile: bool
@@ -145,6 +152,7 @@ class Config(BaseModel):
     tuner: TunerConfig
     hparams: HParamsConfig
     evaluator: EvaluatorConfig
+    uncertainty: UncertaintyConfig
     plots: PlotConfig
 
     def set_dev_run(self) -> None:

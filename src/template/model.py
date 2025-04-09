@@ -133,7 +133,7 @@ class Transformer(nn.Module):
         dropout: float,
         output_dim: int,
         bias: bool,
-        causal: bool = False,
+        causal: bool,
     ) -> None:
         super().__init__()
         self.causal = causal

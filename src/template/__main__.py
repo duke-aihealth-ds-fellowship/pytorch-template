@@ -7,6 +7,7 @@ from template.importance import feature_importance
 from template.plots import plot
 from template.simulation import simulate
 from template.tune import train_model, tune_hyperparameters
+from template.uncertainty import quantify_uncertainty
 
 
 def main():
@@ -28,6 +29,8 @@ def main():
         train_model(cfg=cfg, loaders=loaders)
     if cfg.evaluate:
         evaluate_model(cfg=cfg, loader=loaders.test)
+    if cfg.uq:
+        quantify_uncertainty(cfg=cfg, loaders=loaders)
     if cfg.importance:
         feature_importance(cfg=cfg, loader=loaders.test)
     if cfg.plot:

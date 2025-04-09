@@ -1,11 +1,12 @@
 seed = 42          # Random seed for reproducibility
 dev_run = false    # Run a small subset of the data for debugging
 task = "bc" # bc, cls, reg, tte, mxc (binary, multiclass, regression, time-to-event, mixture-cure)
-simulate = true # Regenerate the tokenized dataset
+simulate = false # Regenerate the tokenized dataset
 tune = false       # tune the model hyperparameters
 use_best = false   # use the best hyperparameters found during tuning
 train = true      # train the model
 evaluate = false   # Generate test set model performance metrics 
+uq = true          # quantify uncertainty in model predictions
 importance = false  # Compute feature importance
 plot = false       # Generate plots/figures
 compile = false    # Compile the Torch model
@@ -26,12 +27,12 @@ metrics_plot = "data/plots/metrics.png"
 num_samples = 1000
 num_timepoints = 20
 num_draws = 0
-parameters = [-1.5, 1.5] # can be list[float] or int
+parameters = [-0.5, 0.5] # can be list[float] or int
 intercept = 0.0   # this affects the prevalence
 scale = 1.0
 parameter_std = 0.1
 latent_std = 0.5
-observed_std = 0.1
+observed_std = 0.3
 gamma_shape = 1.0
 gamma_rate = 1.0
 
@@ -57,7 +58,7 @@ causal = true
 ignore_index = -100
 
 [optimizer]
-lr = 1e-3
+lr = 1e-2
 weight_decay = 1e-5
 fused = true
 
@@ -88,8 +89,8 @@ low = 6             # 2^6 = 64
 high = 10           # 2^10 = 1024
 [hparams.num_heads]
 name = "num_heads"
-low = 1
-high = 3
+low = 1     # 2^1 = 2
+high = 3    # 2^3 = 8
 [hparams.num_layers]
 name = "num_layers"
 low = 1
@@ -111,6 +112,11 @@ log = true
 
 [evaluator]
 n_bootstraps = 100
+
+[uncertainty]
+method = "mc_dropout" # ensemble, mc_dropout
+mc_dropout_samples = 64
+ensemble_size = 50
 
 [plots]
 style = "darkgrid"
