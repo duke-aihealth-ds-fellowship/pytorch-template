@@ -147,3 +147,7 @@ def simulate(cfg: Config) -> None:
     print_simulation_shapes(data=data)
     if "indicator" in data.keys():
         print("Prevalence:", data["indicator"].mean().item())
+    elif "label" in data.keys():
+        print("Prevalence:", data["label"].mean().item())
+    else:
+        pass

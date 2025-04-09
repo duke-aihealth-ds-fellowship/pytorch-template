@@ -73,8 +73,8 @@ def make_dataloaders(cfg: Config) -> DataLoaders:
     data = TensorDict.load(cfg.path.dataset)
     cfg.model.output_dim = get_output_dim(data=data, cfg=cfg)
     loader_kwargs = cfg.dataloader.model_dump()
-    loader = partial(DataLoader, **loader_kwargs)
-    train_loader = partial(loader, shuffle=True, drop_last=True, collate_fn=lambda x: x)
+    loader = partial(DataLoader, **loader_kwargs, collate_fn=lambda x: x)
+    train_loader = partial(loader, shuffle=True, drop_last=True)
     data = TensorDict.load(cfg.path.dataset)
     return DataLoaders(
         train=train_loader(dataset=data["train"]),

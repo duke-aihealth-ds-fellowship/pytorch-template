@@ -1,7 +1,7 @@
 seed = 42          # Random seed for reproducibility
 dev_run = false    # Run a small subset of the data for debugging
 task = "bc" # bc, cls, reg, tte, mxc (binary, multiclass, regression, time-to-event, mixture-cure)
-simulate = false # Regenerate the tokenized dataset
+simulate = true # Regenerate the tokenized dataset
 tune = false       # tune the model hyperparameters
 use_best = false   # use the best hyperparameters found during tuning
 train = true      # train the model
@@ -27,7 +27,7 @@ num_samples = 1000
 num_timepoints = 20
 num_draws = 0
 parameters = [-1.5, 1.5] # can be list[float] or int
-intercept = -2.5   # this affects the prevalence
+intercept = 0.0   # this affects the prevalence
 scale = 1.0
 parameter_std = 0.1
 latent_std = 0.5
@@ -46,7 +46,7 @@ pin_memory = true
 persistent_workers = false
 
 [model]
-hidden_dim = 8
+hidden_dim = 4
 num_heads = 1
 num_layers = 2 
 dropout = 0.1
@@ -57,15 +57,17 @@ causal = true
 ignore_index = -100
 
 [optimizer]
-lr = 1e-4
-weight_decay = 1e-6
+lr = 1e-3
+weight_decay = 1e-5
 fused = true
 
 [scheduler]
 gamma = 0.9
+warmup_steps = 0
+start_factor = 0.1
 
 [trainer]
-max_epochs = 5
+max_epochs = 10
 gradient_clip = 1.0
 device = "cpu" # auto, cpu, cuda, mps
 

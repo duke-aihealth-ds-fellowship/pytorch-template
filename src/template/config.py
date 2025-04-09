@@ -76,6 +76,7 @@ class OptimizerConfig(BaseModel):
 class SchedulerConfig(BaseModel):
     gamma: float
     warmup_steps: int
+    start_factor: float
 
 
 class TrainerConfig(BaseModel):

@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import ExponentialLR, LinearLR, LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from torchmetrics.classification import BinaryAUROC, MulticlassAUROC
 from torchmetrics.regression import MeanAbsoluteError
 from tqdm import tqdm
 
@@ -105,7 +105,7 @@ class Trainer:
 
     @torch.no_grad()
     def evaluate_step(self, batch: dict[str, Tensor]) -> float:
-        inputs, labels = self.to_device(batch, keys=["input_ids", "labels"])
+        inputs, labels = self.to_device(batch, keys=["observed_features", "label"])
         outputs = self.model(inputs)
         self.metric.update(outputs, labels)
         return self.criterion(outputs, labels).item()
@@ -161,9 +161,9 @@ def make_loss_fn(cfg: Config) -> nn.Module:
 
 def make_metric(cfg: Config) -> Metric:
     if cfg.task == "bc":
-        return BinaryAccuracy()
+        return BinaryAUROC()
     elif cfg.task == "cls":
-        return MulticlassAccuracy(num_classes=cfg.model.output_dim)
+        return MulticlassAUROC(num_classes=cfg.model.output_dim)
     elif cfg.task == "reg":
         return MeanAbsoluteError()
     # elif cfg.task == "tte":
@@ -175,8 +175,15 @@ def make_metric(cfg: Config) -> Metric:
 
 
 def make_scheduler(optimizer: Optimizer, cfg: SchedulerConfig) -> Scheduler:
+    if cfg.warmup_steps == 0:
+        start_factor = 1.0
+    else:
+        start_factor = cfg.start_factor
     warmup_scheduler = LinearLR(
-        optimizer, start_factor=0.1, end_factor=1.0, total_iters=cfg.warmup_steps
+        optimizer,
+        start_factor=start_factor,
+        end_factor=1.0,
+        total_iters=cfg.warmup_steps,
     )
     lr_scheduler = ExponentialLR(optimizer, gamma=cfg.gamma)
     scheduler = Scheduler(scheduler=lr_scheduler, warmup_scheduler=warmup_scheduler)
@@ -189,8 +196,6 @@ def make_trainer(
     model = make_model(cfg=cfg)
     criterion = make_loss_fn(cfg=cfg)
     optimizer = AdamW(model.parameters(), **cfg.optimizer.model_dump())
-    if not cfg.scheduler.warmup_steps:
-        cfg.scheduler.warmup_steps = len(train_loader)
     scheduler = make_scheduler(optimizer=optimizer, cfg=cfg.scheduler)
     metric = make_metric(cfg=cfg)
     metric.to(cfg.trainer.device)
